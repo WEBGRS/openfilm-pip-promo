@@ -319,7 +319,12 @@ export function makePlan(cfg, m) {
   if (cfg.cta !== false) {
     const cue = cfg.cta?.say ? (() => { const hit = findPhrase(words, cfg.cta.say)[0]; return hit ? m.cues.find((c) => c.e >= hit.s - 0.01) : null; })() : m.cues.at(-1);
     if (!cue) warnings.push(`the call to action "${cfg.cta.say}" is never said: the film ends on the last demo`);
-    else ctaAt = Math.max(0, round3(filmTimeOf(keeps, cue.s) - 0.05));
+    else {
+      ctaAt = Math.max(0, round3(filmTimeOf(keeps, cue.s) - 0.05));
+      // A cut just before it: start there, so no sliver of window is left
+      let off = 0;
+      for (const [a, b] of keeps) { if (off < ctaAt && ctaAt - off < 0.2) ctaAt = round3(off); off += b - a; }
+    }
   }
   const { found, missing } = matchDemos(words, keeps, cfg.demos ?? [], { ctaAt });
   for (const x of missing) warnings.push(`demo ${x.id}: ${x.why}; it is left out`);
