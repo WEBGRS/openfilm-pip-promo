@@ -1,0 +1,26 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<style>
+  /* 1600x900 cover: three moments of the sample film (hook, a demo with the speaker in a window, the call to action) */
+  * { box-sizing: border-box; margin: 0; }
+  html, body { width: 1600px; height: 900px; }
+  body { background: #f4f1ea; position: relative; overflow: hidden; }
+  img { position: absolute; top: 90px; width: 405px; height: 720px; border-radius: 30px; border: 3px solid #1d1b18; object-fit: cover; background: #fff; }
+  .mid { top: 60px; width: 439px; height: 780px; border-color: #e0572d; border-width: 6px; }
+  .arrow { position: absolute; top: 446px; width: 60px; height: 6px; border-radius: 3px; background: #1d1b18; }
+  .arrow::after { content: ''; position: absolute; right: -4px; top: -11px; border-left: 22px solid #1d1b18; border-top: 14px solid transparent; border-bottom: 14px solid transparent; }
+</style>
+</head>
+<body>
+  <img src="hook.png" style="left: 110px" alt="">
+  <div class="arrow" style="left: 538px"></div>
+  <img class="mid" src="demo.png" style="left: 620px" alt="">
+  <div class="arrow" style="left: 1082px"></div>
+  <img src="cta.png" style="left: 1164px" alt="">
+  <script type="module">
+    window.film = { frame() {}, width: 1600, height: 900, ready: Promise.all([...document.images].map((i) => i.decode())) };
+  </script>
+</body>
+</html>

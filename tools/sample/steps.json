@@ -1,0 +1,17 @@
+[
+  {"wait": 500},
+  {"mark": "search"},
+  {"click": "#q"},
+  {"type": "pasta"},
+  {"wait": 2200},
+  {"mark": "recipe"},
+  {"click": "text=\"Creamy lemon pasta\""},
+  {"wait": 1200},
+  {"scrollTo": "#add"},
+  {"wait": 2000},
+  {"mark": "list"},
+  {"click": "#add"},
+  {"wait": 700},
+  {"click": "#tab-list"},
+  {"wait": 3200}
+]

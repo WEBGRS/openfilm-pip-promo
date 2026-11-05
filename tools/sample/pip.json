@@ -1,0 +1,67 @@
+{
+  "shape": "9:16",
+  "speaker": {
+    "src": "assets/talk.mp4",
+    "face": [
+      190,
+      420,
+      700,
+      933
+    ]
+  },
+  "demos": [
+    {
+      "id": "search",
+      "say": "search",
+      "src": "assets/app.mp4",
+      "from": "mark:search",
+      "label": "Search any dish"
+    },
+    {
+      "id": "recipe",
+      "say": "recipe",
+      "src": "assets/app.mp4",
+      "from": "mark:recipe",
+      "label": "Every ingredient, measured",
+      "focus": [
+        {
+          "t": 4.5,
+          "rect": [
+            40,
+            330,
+            700,
+            160
+          ]
+        },
+        {
+          "t": 5.4,
+          "rect": [
+            40,
+            746,
+            700,
+            548
+          ]
+        }
+      ]
+    },
+    {
+      "id": "list",
+      "say": "add to list",
+      "src": "assets/app.mp4",
+      "from": "mark:list",
+      "label": "One tap to your list"
+    }
+  ],
+  "cta": {
+    "say": "Pantry is free",
+    "logo": "assets/logo.svg",
+    "label": "Free on iPhone and Android"
+  },
+  "music": {
+    "src": "assets/bed.mp3",
+    "volume": 0.35
+  },
+  "cover": {
+    "title": "Still writing your shopping list on paper?"
+  }
+}

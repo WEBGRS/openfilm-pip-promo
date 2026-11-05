@@ -1,0 +1,65 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<style>
+  html, body { margin: 0; width: 1080px; height: 1920px; overflow: hidden; background: #e9e2d4; }
+  svg { display: block; }
+</style>
+</head>
+<body>
+<svg id="s" width="1080" height="1920" viewBox="0 0 1080 1920">
+  <defs>
+    <linearGradient id="wall" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#efe7d8"/><stop offset="1" stop-color="#d8cbb4"/></linearGradient>
+    <linearGradient id="shirt" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#3d6b8f"/><stop offset="1" stop-color="#2c4f6b"/></linearGradient>
+  </defs>
+  <rect width="1080" height="1920" fill="url(#wall)"/>
+  <rect x="60" y="260" width="300" height="380" rx="18" fill="#cdbf9f"/>
+  <rect x="84" y="284" width="252" height="332" rx="10" fill="#9fb59a"/>
+  <rect x="760" y="180" width="260" height="22" rx="8" fill="#b9a27c"/>
+  <circle cx="820" cy="150" r="34" fill="#7fa35f"/><rect x="800" y="150" width="40" height="34" fill="#a8744b"/>
+  <circle cx="930" cy="140" r="44" fill="#6f9550"/><rect x="905" y="140" width="50" height="44" fill="#9b6a43"/>
+  <g id="body">
+    <path d="M190 1920 C200 1350 330 1180 540 1180 C750 1180 880 1350 890 1920 Z" fill="url(#shirt)"/>
+    <path d="M470 1170 L540 1300 L610 1170 Z" fill="#f2f0ea"/>
+    <rect x="490" y="1040" width="100" height="160" rx="40" fill="#d9a07c"/>
+    <g id="head">
+      <ellipse cx="540" cy="790" rx="230" ry="290" fill="#e2ad88"/>
+      <path d="M300 760 C290 520 420 450 540 450 C690 450 800 540 782 760 C760 640 690 590 540 600 C420 606 330 650 300 760 Z" fill="#3a2a22"/>
+      <ellipse cx="312" cy="820" rx="28" ry="52" fill="#d9a07c"/>
+      <ellipse cx="768" cy="820" rx="28" ry="52" fill="#d9a07c"/>
+      <path d="M400 708 Q450 684 498 704" stroke="#3a2a22" stroke-width="14" fill="none" stroke-linecap="round"/>
+      <path d="M582 704 Q630 684 680 708" stroke="#3a2a22" stroke-width="14" fill="none" stroke-linecap="round"/>
+      <g id="eyes">
+        <ellipse id="eyeL" cx="452" cy="770" rx="26" ry="30" fill="#2a1d17"/>
+        <ellipse id="eyeR" cx="628" cy="770" rx="26" ry="30" fill="#2a1d17"/>
+      </g>
+      <path d="M540 800 Q522 870 548 880" stroke="#c48a66" stroke-width="10" fill="none" stroke-linecap="round"/>
+      <ellipse id="mouth" cx="540" cy="960" rx="70" ry="10" fill="#7a2f2a"/>
+      <path id="lip" d="M470 958 Q540 940 610 958" stroke="#b5574c" stroke-width="8" fill="none" stroke-linecap="round"/>
+    </g>
+  </g>
+</svg>
+<script type="module">
+// Mouth from the voice's level, one value per 1/30 s
+let ENV = [0];
+const ready = fetch('env.json').then((r) => r.json()).then((e) => { ENV = e; });
+const mouth = document.getElementById('mouth');
+const head = document.getElementById('head');
+const body = document.getElementById('body');
+const eyes = [document.getElementById('eyeL'), document.getElementById('eyeR')];
+const BLINKS = [1.3, 4.1, 6.8, 9.9, 13.2, 16.0, 19.4, 22.7, 25.1];
+function frame(t) {
+  const i = Math.min(Math.max(Math.round(t * 30), 0), ENV.length - 1);
+  const open = (ENV[i] + (ENV[i - 1] ?? 0) * 0.5 + (ENV[i + 1] ?? 0) * 0.5) / 2;
+  mouth.setAttribute('ry', String(8 + 46 * open));
+  mouth.setAttribute('rx', String(70 - 14 * open));
+  const blink = BLINKS.some((b) => t >= b && t < b + 0.12);
+  for (const e of eyes) e.setAttribute('ry', blink ? '4' : '30');
+  head.setAttribute('transform', `rotate(${2.2 * Math.sin(t * 1.3)} 540 1040) translate(0 ${6 * Math.sin(t * 2.1)})`);
+  body.setAttribute('transform', `translate(${4 * Math.sin(t * 0.7)} 0)`);
+}
+window.film = { frame, ready };
+</script>
+</body>
+</html>

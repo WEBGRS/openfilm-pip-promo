@@ -1,0 +1,6 @@
+out/
+*.log
+cover/*.png
+node_modules/
+artifacts/
+.playwright-mcp/

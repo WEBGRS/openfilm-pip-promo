@@ -1,0 +1,125 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Pantry</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { height: 100%; }
+  body { font: 16px/1.35 "Segoe UI", system-ui, sans-serif; color: #1f2a1f; background: #f6f3ec; overflow: hidden; }
+  .screen { position: absolute; inset: 0; padding: 22px 20px 96px; overflow: hidden; display: none; }
+  .screen.on { display: block; }
+  h1 { font-size: 30px; letter-spacing: -0.5px; }
+  .sub { color: #6b7466; margin: 2px 0 18px; }
+  .search { display: flex; align-items: center; gap: 10px; background: #fff; border-radius: 16px; padding: 14px 16px; box-shadow: 0 2px 10px rgba(40, 50, 30, .08); }
+  .search input { border: 0; outline: 0; font: inherit; flex: 1; background: none; }
+  .search svg { flex: none; }
+  h2 { font-size: 18px; margin: 24px 0 12px; }
+  .picks { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  .pick { height: 150px; border-radius: 18px; padding: 12px; color: #fff; display: flex; align-items: flex-end; font-weight: 600; }
+  .results { margin-top: 14px; display: none; }
+  .results.on { display: block; }
+  .row { display: flex; gap: 12px; align-items: center; background: #fff; border-radius: 16px; padding: 10px; margin-bottom: 10px; }
+  .thumb { width: 64px; height: 64px; border-radius: 12px; flex: none; }
+  .row b { display: block; }
+  .row small { color: #6b7466; }
+  .hero { height: 230px; border-radius: 22px; margin: 4px 0 16px; background: radial-gradient(circle at 35% 40%, #ffe38a 0 18%, transparent 19%), radial-gradient(circle at 62% 58%, #f6c14d 0 22%, transparent 23%), linear-gradient(135deg, #e7a33c, #c9622b); }
+  .meta { color: #6b7466; margin-bottom: 12px; }
+  .ing { background: #fff; border-radius: 16px; padding: 4px 16px; }
+  .ing li { list-style: none; display: flex; justify-content: space-between; padding: 11px 0; border-bottom: 1px solid #eee8dc; }
+  .ing li:last-child { border: 0; }
+  .ing span { color: #6b7466; }
+  .add { display: block; width: 100%; margin-top: 16px; border: 0; border-radius: 16px; padding: 16px; font: 600 17px "Segoe UI", sans-serif; color: #fff; background: #2f7d4f; }
+  .add.done { background: #8fb79c; }
+  .back { border: 0; background: none; font: 600 15px "Segoe UI", sans-serif; color: #2f7d4f; margin-bottom: 10px; }
+  .aisle { margin-top: 18px; }
+  .aisle h3 { font-size: 13px; text-transform: uppercase; letter-spacing: 1px; color: #6b7466; margin-bottom: 8px; }
+  .item { display: flex; align-items: center; gap: 12px; background: #fff; border-radius: 14px; padding: 12px 14px; margin-bottom: 8px; }
+  .box { width: 22px; height: 22px; border-radius: 7px; border: 2px solid #2f7d4f; }
+  .item span { margin-left: auto; color: #6b7466; }
+  .tabs { position: absolute; left: 0; right: 0; bottom: 0; height: 78px; background: #fff; display: flex; border-top: 1px solid #eee8dc; }
+  .tab { flex: 1; border: 0; background: none; font: 600 14px "Segoe UI", sans-serif; color: #8a9385; position: relative; }
+  .tab.on { color: #2f7d4f; }
+  .badge { position: absolute; top: 12px; margin-left: 4px; background: #e0572d; color: #fff; border-radius: 10px; font-size: 12px; padding: 1px 7px; display: none; }
+  .badge.on { display: inline-block; }
+  .toast { position: absolute; left: 20px; right: 20px; bottom: 96px; background: #1f2a1f; color: #fff; border-radius: 14px; padding: 14px 16px; font-weight: 600; opacity: 0; transition: opacity .2s; }
+  .toast.on { opacity: 1; }
+</style>
+</head>
+<body>
+<section class="screen on" id="home">
+  <h1>Pantry</h1>
+  <p class="sub">What are we cooking tonight?</p>
+  <label class="search">
+    <svg width="20" height="20" viewBox="0 0 20 20"><circle cx="8.5" cy="8.5" r="6" fill="none" stroke="#2f7d4f" stroke-width="2.4"/><path d="M13 13l5 5" stroke="#2f7d4f" stroke-width="2.4" stroke-linecap="round"/></svg>
+    <input id="q" placeholder="Search any dish" autocomplete="off">
+  </label>
+  <div class="results" id="results">
+    <div class="row" data-recipe="lemon"><div class="thumb" style="background: linear-gradient(135deg, #f3c246, #d9822b)"></div><div><b>Creamy lemon pasta</b><small>20 min · 6 ingredients</small></div></div>
+    <div class="row"><div class="thumb" style="background: linear-gradient(135deg, #d94f3d, #8f2a1f)"></div><div><b>Pasta all'arrabbiata</b><small>25 min · 7 ingredients</small></div></div>
+    <div class="row"><div class="thumb" style="background: linear-gradient(135deg, #7fb26a, #3f7a3a)"></div><div><b>Pesto pasta salad</b><small>15 min · 8 ingredients</small></div></div>
+  </div>
+  <div id="picks">
+    <h2>Tonight's picks</h2>
+    <div class="picks">
+      <div class="pick" style="background: linear-gradient(160deg, #7fb26a, #3f7a3a)">Green curry</div>
+      <div class="pick" style="background: linear-gradient(160deg, #e7a33c, #c9622b)">Shakshuka</div>
+      <div class="pick" style="background: linear-gradient(160deg, #6f8fd6, #3c5aa6)">Miso soup</div>
+      <div class="pick" style="background: linear-gradient(160deg, #d94f3d, #8f2a1f)">Tacos</div>
+    </div>
+  </div>
+</section>
+<section class="screen" id="recipe">
+  <button class="back" id="back">‹ Recipes</button>
+  <h1>Creamy lemon pasta</h1>
+  <p class="meta">20 min · serves 2</p>
+  <div class="hero"></div>
+  <ul class="ing">
+    <li>Spaghetti <span>200 g</span></li>
+    <li>Lemon <span>1</span></li>
+    <li>Parmesan <span>40 g</span></li>
+    <li>Butter <span>30 g</span></li>
+    <li>Garlic <span>2 cloves</span></li>
+    <li>Black pepper <span>to taste</span></li>
+  </ul>
+  <button class="add" id="add">Add to list</button>
+</section>
+<section class="screen" id="list">
+  <h1>Shopping list</h1>
+  <p class="sub">Sorted by aisle</p>
+  <div class="aisle"><h3>Produce</h3><div class="item"><i class="box"></i>Lemon<span>1</span></div><div class="item"><i class="box"></i>Garlic<span>2 cloves</span></div></div>
+  <div class="aisle"><h3>Dairy</h3><div class="item"><i class="box"></i>Parmesan<span>40 g</span></div><div class="item"><i class="box"></i>Butter<span>30 g</span></div></div>
+  <div class="aisle"><h3>Pantry</h3><div class="item"><i class="box"></i>Spaghetti<span>200 g</span></div><div class="item"><i class="box"></i>Black pepper<span>to taste</span></div></div>
+</section>
+<div class="toast" id="toast">6 items added to your list</div>
+<nav class="tabs">
+  <button class="tab on" id="tab-recipes">Recipes</button>
+  <button class="tab" id="tab-list">List <i class="badge" id="badge">6</i></button>
+</nav>
+<script>
+  const $ = (id) => document.getElementById(id);
+  const show = (id) => {
+    for (const s of document.querySelectorAll('.screen')) s.classList.toggle('on', s.id === id);
+    $('tab-recipes').classList.toggle('on', id !== 'list');
+    $('tab-list').classList.toggle('on', id === 'list');
+  };
+  $('q').addEventListener('input', () => {
+    const on = $('q').value.trim().length > 0;
+    $('results').classList.toggle('on', on);
+    $('picks').style.display = on ? 'none' : '';
+  });
+  document.querySelector('[data-recipe="lemon"]').addEventListener('click', () => show('recipe'));
+  $('back').addEventListener('click', () => show('home'));
+  $('add').addEventListener('click', () => {
+    $('add').textContent = 'Added ✓';
+    $('add').classList.add('done');
+    $('badge').classList.add('on');
+    $('toast').classList.add('on');
+    setTimeout(() => $('toast').classList.remove('on'), 1600);
+  });
+  $('tab-list').addEventListener('click', () => show('list'));
+  $('tab-recipes').addEventListener('click', () => show('home'));
+</script>
+</body>
+</html>
