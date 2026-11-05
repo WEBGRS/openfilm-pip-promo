@@ -61,8 +61,9 @@ a phrase never said. Fix them and plan again.
 `node <this skill's folder>/scripts/pip.mjs check` measures the film as it is now, after anyone's edits: frames where
 the window covers the shown part, leaves the frame, sits on the subtitles or floats over nothing; each shot against
 its word; cuts in pauses; subtitles from the `.vtt`. `--video <render>` also times the picture changes. It must end
-with ✓. Then `npx openfilm look` and read the sheet: the plan only keeps the window off what `focus` says. On light
-screens, suggest a boxed subtitle look in Studio. `npx openfilm look pip/cover.html 0` is the cover.
+with ✓. Then `npx openfilm look` and read the sheet: the plan only keeps the window off what `focus` says. A project
+with no subtitle style gets Studio's boxed look ("bar"), as light product screens swallow white words; one it has is
+kept. `npx openfilm look pip/cover.html 0` is the cover.
 
 ## With the person
 

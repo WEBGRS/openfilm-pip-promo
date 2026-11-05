@@ -622,6 +622,12 @@ async function planCommand(cfgPath, o) {
   const face = fb ? `${Math.round(((fb.x + fb.w / 2) / sm.w) * 100)}% ${Math.round(((fb.y + fb.h / 2) / sm.h) * 100)}%` : '50% 30%';
   report(plan, cfg);
   if (o.dryRun) return plan;
+  // Boxed subtitles unless the project has a style of its own
+  if (!subtitleStyle) {
+    mkdirSync(join(dir, '.film'), { recursive: true });
+    writeFileSync(subFile, JSON.stringify({ look: 'bar' }, null, 2) + '\n');
+    console.log('subtitles: boxed (.film/subtitles.json, look "bar"), so they read on light product screens');
+  }
   mkdirSync(join(dir, 'pip'), { recursive: true });
   const shotFiles = plan.shots.map((s) => {
     const file = `pip/demo-${s.n}-${s.id}.html`;
