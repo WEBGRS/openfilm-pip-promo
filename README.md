@@ -49,7 +49,7 @@ and adds the planning and the measurements.
 filmed with web-demo from `tools/sample/steps.json`, a logo and a music bed. Copy `tools/sample/pip.json` beside it and
 run `pip.mjs plan`, `npx openfilm render --subtitles` and `pip.mjs check --video sample.mp4`. On that sample
 (November 2026): 23.7 s cut to 19.9 s in 2 cuts, both in pauses; three demo shots, each on 0.10 s before its word in
-film.html and 0.07 to 0.09 s before it in the render; the window up for 11.4 s and over the shown part, off the frame,
+film.html and 0.07 to 0.09 s before it in the render; the window up for 11.3 s and over the shown part, off the frame,
 or over the subtitles in 0 frames; `look --full` found no flash, jump, still or black frame.
 
 ## Use it
