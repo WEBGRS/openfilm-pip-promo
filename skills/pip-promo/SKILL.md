@@ -62,12 +62,11 @@ a phrase never said. Fix them and plan again.
 the window covers the shown part, leaves the frame, sits on the subtitles or floats over nothing; each shot against
 its word; cuts in pauses; subtitles from the `.vtt`. `--video <render>` also times the picture changes. It must end
 with ✓. Then `npx openfilm look` and read the sheet: the plan only keeps the window off what `focus` says. A project
-with no subtitle style gets Studio's boxed look ("bar"), as light product screens swallow white words; one it has is
-kept. `npx openfilm look pip/cover.html 0` is the cover.
+with no subtitle style gets Studio's boxed look ("bar"); light screens swallow white words. `npx openfilm look pip/cover.html 0` is the cover.
 
 ## With the person
 
-What they ask for comes first. The recording, the product footage, what the viewer should do at the end, where it
+What they ask for comes first. The recording, the product footage, the viewer's next step, where it
 will be posted. Ask without holding up the work. When
-done, say in a few lines: the length before and after, cuts over two seconds with their words, each shot and the words
+done, say briefly: the length before and after, cuts over two seconds with their words, each shot and the words
 it sits on, what `check` measured, and what footage would make it better.
