@@ -1,0 +1,21 @@
+[
+  {"wait": 1500},
+  {"scroll": 500, "ms": 2500},
+  {"wait": 800},
+  {"scroll": -500, "ms": 800},
+  {"click": "text=\"Reference Material for Medical Professionals in English\""},
+  {"idle": 2500},
+  {"wait": 2000},
+  {"scroll": 700, "ms": 3000},
+  {"wait": 1000},
+  {"goto": "https://iiab.me/kiwix/viewer#mdwiki_en_all_2025-11/Malaria"},
+  {"idle": 6000},
+  {"wait": 2500},
+  {"scroll": 500, "in": "iframe", "ms": 3500},
+  {"wait": 1500},
+  {"goto": "https://iiab.me/kiwix/content/mdwiki_en_all_2025-11/Malaria"},
+  {"idle": 4000},
+  {"wait": 2000},
+  {"scroll": 900, "ms": 4000},
+  {"wait": 1500}
+]

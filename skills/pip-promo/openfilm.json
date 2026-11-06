@@ -1,10 +1,17 @@
 {
-  "version": "0.1.0",
+  "version": "0.1.2",
   "repository": "https://github.com/WEBGRS/openfilm-pip-promo/tree/main/skills/pip-promo",
   "kind": "workflow",
   "order": 28,
   "icon": "pip",
   "cover": "cover.jpg",
+  "needs": {
+    "en": "FFmpeg (ffmpeg and ffprobe) on your PATH; a transcription service connected in OpenFilm",
+    "zh-CN": "PATH 里的 FFmpeg（ffmpeg 和 ffprobe）；在 OpenFilm 里连好的语音转写服务",
+    "ja": "PATH 上の FFmpeg（ffmpeg と ffprobe）、OpenFilm に接続した文字起こしサービス",
+    "ko": "PATH에 있는 FFmpeg(ffmpeg와 ffprobe), OpenFilm에 연결된 음성 전사 서비스",
+    "es": "FFmpeg (ffmpeg y ffprobe) en el PATH; un servicio de transcripción conectado en OpenFilm"
+  },
   "title": {
     "en": "Product promo, speaker in a window",
     "zh-CN": "小窗口播产品推广",
