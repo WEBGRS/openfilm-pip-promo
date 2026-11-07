@@ -38,6 +38,7 @@ test('plan writes the film, a page per demo, the call to action and the cover', 
   const r = run('plan');
   assert.equal(r.status, 0, r.stderr + r.stdout);
   assert.match(r.stdout, /search: "search" said at/);
+  assert.match(r.stdout, /window \S+ over [\d.]+% of its detail/, 'the plan reads the footage and says what the window covers');
   assert.match(r.stdout, /cut \d/, 'the long pause before "Tap" is cut');
   for (const f of ['film.html', 'pip/demo-1-search.html', 'pip/demo-2-recipe.html', 'pip/cta.html', 'pip/cover.html']) assert.ok(existsSync(join(dir, f)), f);
   const html = readFileSync(join(dir, 'film.html'), 'utf8');
@@ -51,6 +52,9 @@ test('check passes the planned film and fails one with the window moved over the
   let r = run('check');
   assert.equal(r.status, 0, r.stdout);
   assert.match(r.stdout, /over the shown part in 0 frames/);
+  assert.match(r.stdout, /demo-1-search: window over [\d.]+% of its detail/);
+  assert.match(r.stdout, /subtitles: [\d.]+:1 against their box or outline/);
+  assert.match(r.stdout, /next: render with --subtitles, then run check --video/);
   const file = join(dir, 'film.html');
   const html = readFileSync(file, 'utf8');
   writeFileSync(file, html.replace(/(class="pip-window" style=")[^"]*"/g, '$1left: 40px; top: 160px; width: 600px; height: 800px"'));

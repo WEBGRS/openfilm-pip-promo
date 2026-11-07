@@ -1,6 +1,6 @@
 {
   "name": "openfilm-pip-promo",
-  "version": "0.1.2",
+  "version": "0.2.2",
   "private": true,
   "description": "An OpenFilm skill: a product promo with the speaker in a small window over the product's own footage, each shot on the words that name it.",
   "type": "module",

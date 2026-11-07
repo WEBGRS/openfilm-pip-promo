@@ -21,12 +21,25 @@ export const SHAPES = { '9:16': [1080, 1920], '16:9': [1920, 1080], '1:1': [1080
 export const LEAD = 0.1;
 /** Shorter demo shots are reported */
 export const MIN_SHOT = 2;
+/** The product may be shown this much of its fitted size, no less, to keep clear of the window */
+export const SMALLEST = 0.78;
+/** Footage this wide (px) shown at less than this scale of its own pixels has text too small to read */
+export const WIDE = 900;
+export const LEGIBLE = 1;
+/** One picture held longer than this, s, is reported with the words said meanwhile */
+export const HOLD = 6;
+/** The check refuses one picture held longer than this, s */
+export const HOLD_MAX = 8;
+/** The window over more of a shot's detail than this is reported: its average, and its worst moment */
+export const DENSE_MEAN = 0.08;
+export const DENSE_PEAK = 0.15;
 /** Gap kept between the window and what a shot shows, px */
 export const GAP = 32;
 export const FILLERS = new Set(['um', 'uh', 'er', 'erm', 'ah', 'hmm', 'mm', 'uhm', '嗯', '呃', '额', '唔', '啊']);
 
 const round3 = (x) => Math.round(x * 1000) / 1000;
 const r1 = (x) => Math.round(x * 10) / 10;
+const pct = (x) => `${Math.round(x * 1000) / 10}%`;
 const clamp = (x, a, b) => Math.min(Math.max(x, a), b);
 const ease = (u) => (u <= 0 ? 0 : u >= 1 ? 1 : u < 0.5 ? 4 * u * u * u : 1 - Math.pow(-2 * u + 2, 3) / 2);
 
@@ -64,7 +77,8 @@ export function windowSlots([W, H], band, o = {}) {
   const rows = [['top', top]];
   if (low > top + wh + m) rows.push([vertical ? 'mid' : 'low', low]);
   const slots = [];
-  for (const [rn, y] of rows) for (const [cn, x] of [['right', W - m - ww], ['left', m]]) slots.push({ name: `${rn}-${cn}`, rect: rect(x, y, ww, wh) });
+  // A vertical feed's buttons run down the right edge below the top: nothing of the film goes there
+  for (const [rn, y] of rows) for (const [cn, x] of [['right', W - m - ww], ['left', m]]) if (!(vertical && rn !== 'top' && cn === 'right')) slots.push({ name: `${rn}-${cn}`, rect: rect(x, y, ww, wh) });
   return slots;
 }
 
@@ -96,7 +110,7 @@ export function freeRects([W, H], obs) {
  */
 export function solveCamera(src, focus, free, [W, H], o = {}) {
   const kContain = Math.min(W / src.w, H / src.h), kCover = Math.max(W / src.w, H / src.h);
-  const kmin = o.fit === 'cover' ? kCover : kContain * 0.85;
+  const kmin = o.kmin ?? (o.fit === 'cover' ? kCover : kContain * 0.85);
   const kmax = Math.max(kContain * (o.zoom ?? 2.2), kmin);
   const kFit = (o.fill ?? 0.82) * Math.min(free.w / focus.w, free.h / focus.h);
   const k = clamp(kFit, kmin, kmax);
@@ -121,9 +135,208 @@ export function padFocus(r, src, min = [0.55, 0.26]) {
   return rect(cx - w / 2, cy - h / 2, w, h);
 }
 
+// ------------------------------------------------------------------ detail
+
+/** Seconds between the frames of a shot whose edges are read */
+export const DETAIL_STEP = 0.75;
+/** Long side of an edge map, px */
+const MAP_LONG = 480;
+/** Sobel |gx| + |gy| above this, on gray 0 to 255, is an edge */
+const EDGE = 110;
+/** Fewer edges than this in what is visible: a blank screen, no share to speak of */
+const MIN_EDGES = 25;
+
+/** Edge pixels of a gray image: 1 where the gradient is strong. */
+export function edgeMap(gray, w, h) {
+  const out = new Uint8Array(w * h);
+  for (let y = 1; y < h - 1; y++) for (let x = 1; x < w - 1; x++) {
+    const i = y * w + x;
+    const gx = gray[i - w + 1] + 2 * gray[i + 1] + gray[i + w + 1] - gray[i - w - 1] - 2 * gray[i - 1] - gray[i + w - 1];
+    const gy = gray[i + w - 1] + 2 * gray[i + w] + gray[i + w + 1] - gray[i - w - 1] - 2 * gray[i - w] - gray[i - w + 1];
+    if (Math.abs(gx) + Math.abs(gy) > EDGE) out[i] = 1;
+  }
+  return out;
+}
+
+/** A summed-area table of a 0/1 map, for counting edges in any box at once. */
+export function integral(map, w, h) {
+  const t = new Int32Array((w + 1) * (h + 1));
+  for (let y = 0; y < h; y++) {
+    let row = 0;
+    for (let x = 0; x < w; x++) { row += map[y * w + x]; t[(y + 1) * (w + 1) + x + 1] = t[y * (w + 1) + x + 1] + row; }
+  }
+  return t;
+}
+
+/**
+ * What a shot's footage shows, as edge maps every DETAIL_STEP s: `at(t, cam, r)` is how much of the edge detail that is on
+ * the frame at shot second t (camera [k, ox, oy]) lies under the rect r (frame px): { covered, visible, area }.
+ * `frames` are { ii } integral tables of maps of w x h px; `src` the footage's own size.
+ */
+export function makeDetail({ w, h, src, frames, blanks = [] }) {
+  const count = (ii, x0, y0, x1, y1) => {
+    const a = clamp(Math.round(x0), 0, w), b = clamp(Math.round(x1), 0, w), c = clamp(Math.round(y0), 0, h), d = clamp(Math.round(y1), 0, h);
+    return b > a && d > c ? ii[d * (w + 1) + b] - ii[c * (w + 1) + b] - ii[d * (w + 1) + a] + ii[c * (w + 1) + a] : 0;
+  };
+  return {
+    frames: frames.length,
+    /** Moments the footage goes blank, from the start of the range read: [{ t, secs }] */
+    blanks,
+    /** Edges in each whole frame of the footage */
+    totals: frames.map((f) => f.ii[(w + 1) * (h + 1) - 1]),
+    at(t, [k, ox, oy], r, stage) {
+      const ii = frames[clamp(Math.round(t / DETAIL_STEP), 0, frames.length - 1)].ii;
+      const sx = (k * src.w) / w, sy = (k * src.h) / h;
+      const map = (q) => [(q.x - ox) / sx, (q.y - oy) / sy, (q.x + q.w - ox) / sx, (q.y + q.h - oy) / sy];
+      const [vx0, vy0, vx1, vy1] = map(rect(0, 0, ...stage));
+      const vis = [clamp(vx0, 0, w), clamp(vy0, 0, h), clamp(vx1, 0, w), clamp(vy1, 0, h)];
+      const [rx0, ry0, rx1, ry1] = map(r);
+      const win = [Math.max(rx0, vis[0]), Math.max(ry0, vis[1]), Math.min(rx1, vis[2]), Math.min(ry1, vis[3])];
+      const visibleArea = Math.max(0, vis[2] - vis[0]) * Math.max(0, vis[3] - vis[1]);
+      const winArea = Math.max(0, win[2] - win[0]) * Math.max(0, win[3] - win[1]);
+      const visible = count(ii, ...vis);
+      return { covered: count(ii, ...win), visible, area: visibleArea ? winArea / visibleArea : 0 };
+    },
+  };
+}
+
+/** The share of a shot's edge detail under a rect, over its camera path: { mean, peak, area }, shares 0 to 1. */
+export function coverage(detail, path, stage, r, every = 8) {
+  let sum = 0, n = 0, peak = 0, area = 0;
+  for (let f = 0; f < path.length; f += every) {
+    const d = detail.at(f / FPS, path[f], r, stage);
+    const share = d.visible < MIN_EDGES ? 0 : d.covered / d.visible;
+    sum += share; area += d.area; n++;
+    peak = Math.max(peak, share);
+  }
+  return { mean: n ? sum / n : 0, peak, area: n ? area / n : 0 };
+}
+
+/** Edge maps of footage over a stretch (a still: one), read through ffmpeg; null when it cannot be read. */
+export function readDetail(file, size, from, len) {
+  const long = Math.max(size.w, size.h);
+  const w = Math.max(8, 2 * Math.round((size.w * MAP_LONG) / long / 2)), h = Math.max(8, 2 * Math.round((size.h * MAP_LONG) / long / 2));
+  const still = STILL.test(file);
+  const args = still
+    ? ['-v', 'error', '-i', file, '-vf', `scale=${w}:${h}`, '-frames:v', '1', '-pix_fmt', 'gray', '-f', 'rawvideo', '-']
+    : ['-v', 'error', '-ss', String(from), '-t', String(len + DETAIL_STEP), '-i', file, '-vf', `fps=1/${DETAIL_STEP},scale=${w}:${h}`, '-pix_fmt', 'gray', '-f', 'rawvideo', '-'];
+  const r = spawnSync('ffmpeg', ['-hide_banner', '-nostdin', ...args], { maxBuffer: 1 << 29 });
+  if (r.status !== 0 || !r.stdout?.length) return null;
+  const n = Math.floor(r.stdout.length / (w * h));
+  if (!n) return null;
+  const frames = [];
+  for (let i = 0; i < n; i++) frames.push({ ii: integral(edgeMap(r.stdout.subarray(i * w * h, (i + 1) * w * h), w, h), w, h) });
+  return makeDetail({ w, h, src: size, frames, blanks: fineBlanks(file, size, from, len) });
+}
+
+/** Frames per second, and long side in px, of the fast read that finds a page flashing blank */
+const FINE = 10, FINE_LONG = 160;
+
+/** Where footage goes nearly blank for a moment (a page loading), read at FINE frames a second: [{ t, secs }] from `from`. */
+export function fineBlanks(file, size, from, len) {
+  if (STILL.test(file)) return [];
+  const long = Math.max(size.w, size.h);
+  const w = Math.max(8, 2 * Math.round((size.w * FINE_LONG) / long / 2)), h = Math.max(8, 2 * Math.round((size.h * FINE_LONG) / long / 2));
+  const r = spawnSync('ffmpeg', ['-hide_banner', '-nostdin', '-v', 'error', '-ss', String(from), '-t', String(len), '-i', file, '-vf', `fps=${FINE},scale=${w}:${h}`, '-pix_fmt', 'gray', '-f', 'rawvideo', '-'], { maxBuffer: 1 << 28 });
+  if (r.status !== 0 || !r.stdout?.length) return [];
+  const n = Math.floor(r.stdout.length / (w * h));
+  const totals = [];
+  for (let i = 0; i < n; i++) totals.push(edgeMap(r.stdout.subarray(i * w * h, (i + 1) * w * h), w, h).reduce((a, b) => a + b, 0));
+  return blankSpans(totals);
+}
+
+/** Runs of frames with under 30% of the middle frame's edges, as [{ t, secs }] at FINE frames a second. */
+export function blankSpans(totals) {
+  const mid = [...totals].sort((a, b) => a - b)[Math.floor(totals.length / 2)] ?? 0;
+  if (mid < 40) return [];
+  const spans = [];
+  totals.forEach((v, i) => {
+    if (v >= 0.3 * mid) return;
+    const last = spans.at(-1);
+    if (last && i - last.last === 1) last.last = i; else spans.push({ first: i, last: i });
+  });
+  return spans.map((x) => ({ t: round3(x.first / FINE), secs: round3((x.last - x.first + 1) / FINE) }));
+}
+
+// ------------------------------------------------------------------ subtitles
+
+const LOOKS = {
+  outline: { fill: '#ffffff', stroke: { widthEm: 0.055, color: 'rgba(0,0,0,0.84)' } },
+  bar: { fill: '#ffffff', box: { color: '#000000', opacity: 0.62 } },
+  bold: { fill: '#ffffff', stroke: { widthEm: 0.08, color: '#000000' } },
+  yellow: { fill: '#ffe14d', stroke: { widthEm: 0.075, color: '#000000' } },
+};
+
+/** [r, g, b, a] of a CSS color (#rgb, #rrggbb, rgb(), rgba()); null when it is none of those. */
+export function parseColor(text) {
+  const s = String(text ?? '').trim().toLowerCase();
+  let m = /^#([0-9a-f]{3})$/.exec(s);
+  if (m) return [...m[1]].map((c) => parseInt(c + c, 16)).concat(1);
+  m = /^#([0-9a-f]{6})$/.exec(s);
+  if (m) return [0, 2, 4].map((i) => parseInt(m[1].slice(i, i + 2), 16)).concat(1);
+  m = /^rgba?\(\s*([\d.]+)[\s,]+([\d.]+)[\s,]+([\d.]+)(?:[\s,/]+([\d.]+%?))?\s*\)$/.exec(s);
+  if (m) return [+m[1], +m[2], +m[3], m[4] == null ? 1 : m[4].endsWith('%') ? parseFloat(m[4]) / 100 : +m[4]];
+  return null;
+}
+
+const luminance = ([r, g, b]) => [r, g, b].map((v) => { const c = v / 255; return c <= 0.03928 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4; }).reduce((n, c, i) => n + c * [0.2126, 0.7152, 0.0722][i], 0);
+/** WCAG contrast ratio of two colors, 1 to 21. */
+export function contrast(a, b) {
+  const [hi, lo] = [luminance(a), luminance(b)].sort((x, y) => y - x);
+  return (hi + 0.05) / (lo + 0.05);
+}
+
+/**
+ * How a subtitle style reads on the worst screens, a white page and a black one: the text against its box over that page,
+ * or against its outline. `style` is { fill, box: { color, opacity }, stroke: { widthEm, color } }; null when unknown.
+ */
+export function subtitleContrast(style) {
+  const fill = parseColor(style?.fill ?? '#ffffff');
+  if (!fill) return null;
+  const box = style.box ? parseColor(style.box.color) : null;
+  const stroke = style.stroke && style.stroke.widthEm >= 0.04 ? parseColor(style.stroke.color) : null;
+  let worst = null;
+  for (const [name, page] of [['white', [255, 255, 255]], ['black', [0, 0, 0]]]) {
+    let bg = page;
+    if (box) { const a = style.box.opacity ?? 1; bg = box.slice(0, 3).map((v, i) => v * a + page[i] * (1 - a)); }
+    else if (stroke && stroke[3] >= 0.6) bg = stroke.slice(0, 3);
+    const ratio = contrast(fill, bg);
+    if (!worst || ratio < worst.ratio) worst = { ratio: Math.round(ratio * 10) / 10, page: name };
+  }
+  return worst;
+}
+
+/** The style a project's subtitles file says: a known look by name, then its own fields over it; null when neither is known. */
+export function styleOf(raw) {
+  if (!raw) return null;
+  const base = LOOKS[raw.look] ?? null;
+  if (!base && raw.fill == null && raw.box === undefined) return null;
+  return { fill: raw.fill ?? base?.fill ?? '#ffffff', box: raw.box !== undefined ? raw.box : base?.box ?? null, stroke: raw.stroke !== undefined ? raw.stroke : base?.stroke ?? null };
+}
+
+/** What a caption track's file says of the look of its cues and where they sit: { style, y, size, line } from its STYLE and REGION blocks. */
+export function captionLook(vtt) {
+  const text = String(vtt ?? '').replace(/\r\n?/g, '\n');
+  const css = [...text.matchAll(/(?:^|\n)STYLE\n([\s\S]*?)(?=\n\n|$)/g)].map((m) => m[1]).join('\n');
+  const rule = /::cue\s*\{([^}]*)\}/.exec(css)?.[1] ?? '';
+  const prop = (n) => new RegExp(`(?:^|;|\\s)${n}\\s*:\\s*([^;]+)`).exec(rule)?.[1]?.trim();
+  const bg = prop('background(?:-color)?');
+  const bgc = bg && !/^none$/i.test(bg) ? parseColor(bg) : null;
+  const strokeM = /-webkit-text-stroke\s*:\s*([\d.]+)em\s+(.+?)\s*(?:;|$)/.exec(rule);
+  const font = /font\s*:[^;]*?([\d.]+)cqmin\s*\/\s*([\d.]+)/.exec(rule);
+  const y = /viewportanchor\s*:\s*[\d.]+%\s*,\s*([\d.]+)%/.exec(text)?.[1];
+  const known = rule && (prop('color') || bgc || strokeM);
+  return {
+    style: known ? { fill: prop('color') ?? '#ffffff', box: bgc ? { color: `rgb(${bgc[0]},${bgc[1]},${bgc[2]})`, opacity: bgc[3] } : null, stroke: strokeM ? { widthEm: +strokeM[1], color: strokeM[2] } : null } : null,
+    y: y != null ? +y / 100 : null,
+    size: font ? +font[1] : null,
+    line: font ? +font[2] : null,
+  };
+}
+
 // ------------------------------------------------------------------ words
 
-const norm = (s) => s.toLowerCase().normalize('NFKC').replace(/[^\p{L}\p{N}]+/gu, '');
+const norm =(s) => s.toLowerCase().normalize('NFKC').replace(/[^\p{L}\p{N}]+/gu, '');
 const CJK = /[\p{Script=Han}\p{Script=Hiragana}\p{Script=Katakana}\p{Script=Hangul}]/u;
 
 /** Every place a phrase is said: [{ i, j, s, e }] by word index and source seconds. */
@@ -271,19 +484,23 @@ export function cameraPath(cams, keys, len, push = 0.03) {
 }
 
 /** The best window slot and camera for a shot: nothing shown under the window, the shown part as large as fits. */
-export function placeShot({ src, keys, len, fit, zoom }, stage, band, slots, prefer) {
+export function placeShot({ src, keys, len, fit, zoom, detail }, stage, band, slots, prefer) {
   let best = null;
   slots.forEach((slot, si) => {
     const free = freeRects(stage, obstacles(stage, band, slot.rect));
     if (!free.length) return;
     // Each focus key's camera in each free rect; every combination tried, the one that never meets the window kept
-    const options = keys.map((key) => free.map((fr) => {
-      const cam = solveCamera(src, key.r, fr, stage, { fit, zoom });
+    const kBase = Math.min(stage[0] / src.w, stage[1] / src.h);
+    // With the footage's detail known, the product may also be a little smaller, beside the window instead of under it
+    const camerasOf = (shrink) => keys.map((key) => free.flatMap((fr) => shrink.map((kmin) => {
+      const cam = solveCamera(src, key.r, fr, stage, { fit, zoom, kmin });
       const s = shown(cam, key.r);
       return { ...cam, fits: inside(s, fr) && inside(s, rect(0, 0, ...stage)) };
-    }));
+    })));
+    let options = camerasOf(detail && fit !== 'cover' ? [undefined, SMALLEST * kBase] : [undefined]);
+    // Too many combinations to try them all: leave the smaller product out
+    if (options.reduce((n, o) => n * o.length, 1) > 1024) options = camerasOf([undefined]);
     const win = grow(slot.rect, 4);
-    const kBase = Math.min(stage[0] / src.w, stage[1] / src.h);
     let pick = null;
     const total = options.reduce((n, o) => n * o.length, 1);
     for (let c = 0; c < Math.min(total, 1024); c++) {
@@ -294,12 +511,14 @@ export function placeShot({ src, keys, len, fit, zoom }, stage, band, slots, pre
       const misfit = cams.filter((x) => !x.fits).length;
       // Larger, and more of the frame filled by the footage
       const fill = cams.reduce((n, x) => n + overlap(rect(x.ox, x.oy, src.w * x.k, src.h * x.k), rect(0, 0, ...stage)) / area(rect(0, 0, ...stage)), 0) / cams.length;
-      const value = -hits * 1000 - misfit * 100 + cams.reduce((n, x) => n + x.k / kBase, 0) / cams.length * 10 + fill * 10;
-      if (!pick || value > pick.value) pick = { path, hits, value };
+      // The window over the product's detail costs as much as being smaller would
+      const cover = detail ? coverage(detail, path, stage, slot.rect) : null;
+      const value = -hits * 1000 - misfit * 100 + cams.reduce((n, x) => n + x.k / kBase, 0) / cams.length * 10 + fill * 10 - (cover ? cover.mean * 120 + cover.peak * 40 : 0);
+      if (!pick || value > pick.value) pick = { path, hits, value, cover };
     }
-    const { path, hits } = pick;
+    const { path, hits, cover } = pick;
     const score = pick.value + (slot.name === prefer ? 2 : 0) - si * 0.2;
-    if (!best || score > best.score) best = { slot, path, hits, score };
+    if (!best || score > best.score) best = { slot, path, hits, score, cover };
   });
   return best;
 }
@@ -343,14 +562,34 @@ export function makePlan(cfg, m) {
       stop = round3(start + room);
     }
     const len = round3(stop - start);
-    if (len < MIN_SHOT) warnings.push(`demo ${d.id} is on screen ${len} s, under ${MIN_SHOT} s: name the next one later, or leave one out`);
-    const keys = focusKeys(d, media, from, len, m.records[d.src]);
+    if (len < MIN_SHOT) warnings.push(`demo ${d.id} is on screen ${len} s, under ${MIN_SHOT} s: leave it out, or, if the shot before shows the same footage, give that shot a focus on "${f.phrase}" ({ "say": "${f.phrase}", "rect": [x, y, w, h] }). A "say" moved off its word puts the picture off the word`);
+    // A focus that names a phrase moves the camera on the word
+    const focus = Array.isArray(d.focus) && d.focus.some((x) => x?.say)
+      ? d.focus.map((x) => {
+        if (!x?.say) return x;
+        const at = findPhrase(words, x.say).map((h) => filmTimeOf(keeps, h.s)).find((v) => v >= start - 0.2 && v <= start + len);
+        if (at == null) { warnings.push(`demo ${d.id}: focus says "${x.say}" but it is not said while the shot is on`); return null; }
+        return { t: from + Math.max(0, round3(at - start + 0.3)), rect: x.rect };
+      }).filter(Boolean)
+      : d.focus;
+    const keys = focusKeys({ ...d, focus }, media, from, len, m.records[d.src]);
     if (!d.focus && !m.records[d.src]) warnings.push(`demo ${d.id}: nothing says where its action is, so the window keeps clear of the middle of the screen; give "focus" rects or film it with web-demo or app-demo`);
-    const placed = placeShot({ src: media, keys, len, fit: d.fit, zoom: d.zoom }, stage, band, slots, prefer);
+    const detail = m.detail?.(d.src, media, from, len) ?? null;
+    const placed = placeShot({ src: media, keys, len, fit: d.fit, zoom: d.zoom, detail }, stage, band, slots, prefer);
     if (placed.hits) warnings.push(`demo ${d.id}: the window covers what it shows in ${placed.hits} frames whatever its place; give it a smaller focus`);
+    if (placed.cover && (placed.cover.mean > DENSE_MEAN || placed.cover.peak > DENSE_PEAK)) warnings.push(`demo ${d.id}: the window still covers ${pct(placed.cover.mean)} of its detail (${pct(placed.cover.peak)} at most) in its best place: a dense screen. Give the speaker a smaller window ("window": { "width": 0.27 }) or a calmer part of the footage ("from")`);
+    // A page still loading, or flashing blank
+    const blank = (detail?.blanks ?? []).filter((x) => x.t < len);
+    if (blank.length) {
+      const b = blank[0], at = round3(from + b.t);
+      warnings.push(`demo ${d.id}: its footage goes blank at ${at} s${blank.length > 1 ? ` and ${blank.length - 1} more times` : ''} (${b.secs} s, a page loading), a flash in the film: a "from" or a shot that ends before it, or other footage`);
+    }
+    // A wide recording shown smaller than it was filmed has text too small to read in a feed
+    const smallest = Math.min(...placed.path.map((p) => p[0]));
+    if (media.w >= WIDE && smallest < LEGIBLE - 0.01) warnings.push(`demo ${d.id}: its footage is shown at ${Math.round(smallest * 100) / 100}x of its own pixels, so a 14 px line of text in it is ${Math.round(14 * smallest)} px on the ${stage[0]} px frame, too small to read in a feed: a smaller "focus", the part being talked about, is shown larger`);
     prefer = placed.slot.name;
-    const label = d.label ? placeLabel(d.label, stage, band, placed.slot.rect, placed.path) : null;
-    shots.push({ id: d.id, n: n + 1, src: d.src, from: round3(from), at: start, len, word: f.word, said: f.said, phrase: f.phrase, slot: placed.slot, path: placed.path, label, size: [media.w, media.h], taps: tapsOf(m.records[d.src], from, len) });
+    const label = d.label ? placeLabel(d.label, stage, band, placed.slot.rect, placed.path, detail) : null;
+    shots.push({ id: d.id, n: n + 1, src: d.src, from: round3(from), at: start, len, word: f.word, said: f.said, phrase: f.phrase, slot: placed.slot, path: placed.path, label, cover: placed.cover, size: [media.w, media.h], taps: tapsOf(m.records[d.src], from, len) });
   });
   // Full frame for the hook, between shots with no footage, and from the call to action
   let t = 0;
@@ -361,6 +600,15 @@ export function makePlan(cfg, m) {
   }
   if (t < length) states.push({ a: t, b: length, mode: 'full' });
   if (states[0]?.mode === 'full' && states[0].b > 6) warnings.push(`the opening runs ${states[0].b} s before the first demo: name a feature sooner`);
+  // One picture for long, and what the speaker names meanwhile
+  const saidIn = (a, b) => words.filter((w) => { const at = filmTimeOf(keeps, w.s); return at >= a && at < b && keeps.some(([x, y]) => w.s >= x - 1e-6 && w.s <= y); }).map((w) => w.w);
+  for (const s of shots) {
+    for (const h of holdsOf(s.at, s.len, s.path)) {
+      if (h.b - h.a <= HOLD) continue;
+      const ws = saidIn(h.a, h.b);
+      warnings.push(`demo ${s.id} holds one picture for ${round3(h.b - h.a)} s (${h.a.toFixed(1)}-${h.b.toFixed(1)}) while the speaker says "${ws.slice(0, 16).join(' ')}${ws.length > 16 ? ' …' : ''}": a demo of its own for a thing named there changes the picture on its word, or a focus with a "say" moves the camera on it`);
+    }
+  }
   const clips = speakerClips(keeps, states);
   return { stage, band, slots, keeps, cuts: cut.cuts, length, before: m.duration, ctaAt, shots, states, clips, warnings };
 }
@@ -378,8 +626,9 @@ function tapsOf(record, from, len) {
   return record.take.events.filter((e) => e.type === 'down' && e.t >= from && e.t <= from + len).map((e) => [round3(e.t - from), r1(e.x * s), r1(e.y * s)]);
 }
 
-/** A feature label at the top or bottom of the free part, clear of the window and of the shown part. */
-export function placeLabel(text, [W, H], band, win, path) {
+/** A feature label at the top or bottom of the free part, clear of the window and of the shown part, over the least detail. */
+export function placeLabel(text, stage, band, win, path, detail = null) {
+  const [W, H] = stage;
   const h = Math.round(Math.min(W, H) * 0.075), font = Math.min(W, H) * 0.036;
   const chars = [...text].reduce((n, c) => n + (CJK.test(c) ? 1.05 : 0.56), 0);
   const w = Math.min(Math.round(chars * font + h), W - 2 * Math.round(W * 0.05));
@@ -391,9 +640,10 @@ export function placeLabel(text, [W, H], band, win, path) {
     const r = rect(x, y, w, h);
     if (overlap(grow(r, 8), grow(win, 4)) || overlap(r, band) || r.y < 0) continue;
     const hits = path.filter((p) => overlap(r, rect(p[3], p[4], p[5], p[6])) > 0).length;
-    if (!best || hits < best.hits) best = { rect: r, hits };
+    const under = detail ? coverage(detail, path, stage, r).mean : 0;
+    if (!best || hits < best.hits || (hits === best.hits && under < best.under - 1e-9)) best = { rect: r, hits, under };
   }
-  return best && best.hits === 0 ? { text, rect: best.rect } : null;
+  return best && best.hits === 0 ? { text, rect: best.rect, under: best.under } : null;
 }
 
 /** The speaker's clips: each kept stretch split where the window moves, the same file throughout. */
@@ -619,7 +869,13 @@ async function planCommand(cfgPath, o) {
   }
   const subFile = join(dir, '.film', 'subtitles.json');
   const subtitleStyle = existsSync(subFile) ? JSON.parse(readFileSync(subFile, 'utf8')) : undefined;
-  const plan = makePlan(o.keepAll ? { ...cfg, cut: false } : cfg, { words: wordsOf(vttFor(sp)), cues: cuesOf(vttFor(sp)), pauses: pausesOf(lv), duration: lv.duration, media, records, subtitleStyle });
+  const detailCache = new Map();
+  const detail = (src, size, from, len) => {
+    const key = `${src}@${round3(from)}+${round3(len)}`;
+    if (!detailCache.has(key)) detailCache.set(key, readDetail(resolve(dir, src), size, from, len));
+    return detailCache.get(key);
+  };
+  const plan = makePlan(o.keepAll ? { ...cfg, cut: false } : cfg, { words: wordsOf(vttFor(sp)), cues: cuesOf(vttFor(sp)), pauses: pausesOf(lv), duration: lv.duration, media, records, subtitleStyle, detail });
   const sm = probe(sp);
   const fb = cfg.speaker.face ? { x: cfg.speaker.face[0], y: cfg.speaker.face[1], w: cfg.speaker.face[2], h: cfg.speaker.face[3], sw: sm.w, sh: sm.h } : null;
   const face = fb ? `${Math.round(((fb.x + fb.w / 2) / sm.w) * 100)}% ${Math.round(((fb.y + fb.h / 2) / sm.h) * 100)}%` : '50% 30%';
@@ -660,7 +916,7 @@ function report(plan, cfg) {
     if (s.mode === 'full') console.log(`${s.a.toFixed(2)}-${s.b.toFixed(2)}  speaker full frame${s.a === 0 ? ' (hook)' : s.a >= (plan.ctaAt ?? Infinity) - 0.01 ? ' (call to action)' : ''}`);
     else {
       const shot = plan.shots.find((x) => x.at === s.a);
-      console.log(`${s.a.toFixed(2)}-${s.b.toFixed(2)}  ${shot.id}: "${shot.phrase}" said at ${shot.said.toFixed(2)}, shot from ${shot.src} ${shot.from} s, window ${s.slot.name}${shot.label ? `, label "${shot.label.text}"` : ''}`);
+      console.log(`${s.a.toFixed(2)}-${s.b.toFixed(2)}  ${shot.id}: "${shot.phrase}" said at ${shot.said.toFixed(2)}, shot from ${shot.src} ${shot.from} s, window ${s.slot.name}${shot.cover ? ` over ${pct(shot.cover.mean)} of its detail` : ''}${shot.label ? `, label "${shot.label.text}"` : ''}`);
     }
   }
   for (const w of plan.warnings) console.log(`! ${w}`);
@@ -690,11 +946,16 @@ export function filmClips(html) {
 
 const lenOf = (c) => (c.out != null ? (c.out - c.in) / c.speed : Infinity);
 
-export function checkFilm(html, { dir, pageData, pausesFor, wordsFor }) {
+export function checkFilm(html, { dir, pageData, pausesFor, wordsFor, detailFor, style, captionFor }) {
   const { stage, clips } = filmClips(html);
   const [W, H] = stage;
   const frame = rect(0, 0, W, H);
-  const band = subtitleBand(stage);
+  // Caption tracks say where their cues sit and how they look; without one, the project's subtitle style does
+  const tags = html.match(/<track\b[^>]*>/g) ?? [];
+  const captionTags = tags.filter((t) => !/\skind=/.test(t) || /\skind=["']?(captions|subtitles)\b/.test(t));
+  const caps = captionTags.map((t) => captionLook(captionFor?.(/\ssrc="([^"]*)"/.exec(t)?.[1])));
+  const capY = caps.find((c) => c.y != null);
+  const band = subtitleBand(stage, capY ? { pos: { y: capY.y }, font: { sizePct: capY.size ?? 4, lineHeight: capY.line ?? 1.45 } } : style);
   const speaker = clips.filter((c) => c.kind === 'video' && /pip-(window|full)/.test(c.cls)).sort((a, b) => a.at - b.at);
   const demos = clips.filter((c) => c.kind === 'iframe' && c.say != null).map((c) => ({ ...c, data: pageData(c.file) })).filter((c) => c.data);
   const problems = [], lines = [];
@@ -721,6 +982,32 @@ export function checkFilm(html, { dir, pageData, pausesFor, wordsFor }) {
   if (overSubs) problems.push(`the window sits over the subtitles in ${overSubs} frames`);
   if (bare) problems.push(`the window floats over no demo in ${bare} frames`);
   if (labelHits) problems.push(`a label overlaps the window or the shown part in ${labelHits} frames`);
+  // What the window covers of the product's own picture, and whether another place covers less
+  const detailLines = [];
+  if (detailFor) {
+    for (const d of demos) {
+      const sp = speaker.find((c) => d.at >= c.at - 1e-6 && d.at < c.at + lenOf(c) - 1e-6);
+      if (!sp?.box || (sp.box.w >= W - 1 && sp.box.h >= H - 1)) continue;
+      const det = detailFor(d.data);
+      if (!det) { detailLines.push(`${d.id}: footage not read, its detail under the window is not measured`); continue; }
+      const own = coverage(det, d.data.path, stage, sp.box);
+      const others = windowSlots(stage, band, { width: sp.box.w / W, aspect: `${sp.box.w}:${sp.box.h}` }).map((s) => ({ name: s.name, ...coverage(det, d.data.path, stage, s.rect) }));
+      const best = others.reduce((b, x) => (x.mean < b.mean ? x : b), { mean: Infinity });
+      detailLines.push(`${d.id}: window over ${pct(own.mean)} of its detail (${pct(own.peak)} at most), ${pct(own.area)} of its area`);
+      if (own.mean > best.mean + 0.03 && own.mean > 0.04) problems.push(`${d.id}: the window covers ${pct(own.mean)} of the footage's detail where ${best.name} covers ${pct(best.mean)}: move it there (plan again places it; a hand-moved window goes to ${best.name}'s box)`);
+      else if (best.mean > DENSE_MEAN || own.peak > DENSE_PEAK) detailLines.push(`! ${d.id}: dense screen, ${pct(Math.min(own.mean, best.mean))} covered in the best place: a smaller window ("window": { "width": 0.27 }) or a calmer "from" is all that is left`);
+    }
+  }
+  lines.push(...detailLines);
+  // One picture held for long
+  for (const d of demos) for (const h of holdsOf(d.at, lenOf(d), d.data.path)) {
+    if (h.b - h.a > HOLD_MAX) problems.push(`${d.id} holds one picture for ${round3(h.b - h.a)} s (${h.a.toFixed(1)}-${h.b.toFixed(1)}): a demo of its own for a thing the speaker names there, or a focus with a "say", changes it on the word`);
+  }
+  // Wide footage shown smaller than it was filmed
+  for (const d of demos) {
+    const small = Math.min(...d.data.path.map((p) => p[0]));
+    if (d.data.size?.[0] >= WIDE && small < LEGIBLE - 0.01) lines.push(`! ${d.id}: footage shown at ${Math.round(small * 100) / 100}x of its own pixels, so its small text will not read in a feed: a smaller focus shows it larger`);
+  }
   // Demo shots against their words
   let worst = 0;
   for (const d of demos) {
@@ -765,11 +1052,17 @@ export function checkFilm(html, { dir, pageData, pausesFor, wordsFor }) {
     const ws = text.split(/\s+/).map(norm).filter(Boolean);
     for (let i = 0; i + 4 <= ws.length; i++) if (runs.has(ws.slice(i, i + 4).join(' '))) { problems.push(`${c.file} draws the speaker's words "${ws.slice(i, i + 4).join(' ')}": subtitles come from the .vtt`); break; }
   }
-  // Caption tracks are allowed; their cues are not measured
-  const tags = html.match(/<track\b[^>]*>/g) ?? [];
-  const captionTags = tags.filter((t) => !/\skind=/.test(t) || /\skind=["']?(captions|subtitles)\b/.test(t));
-  if (captionTags.length) lines.push(`${captionTags.length} caption track(s): the window is checked against the default subtitle band, not their cues`);
+  // Caption tracks are allowed; how their cues read is measured below
+  if (captionTags.length) lines.push(`${captionTags.length} caption track(s): the window is checked against ${capY ? 'where their cues sit' : 'the default subtitle band'}`);
   if (captionTags.length < tags.length) problems.push('film.html has a <track> that is not a caption track');
+  // Subtitles that read on a light screen
+  const looks = caps.length ? caps.map((c) => c.style) : [styleOf(style)];
+  for (const look of looks) {
+    const c = look ? subtitleContrast(look) : null;
+    if (!c) { if (caps.length || style) lines.push('subtitle look not recognised: its contrast is not measured'); continue; }
+    lines.push(`subtitles: ${c.ratio}:1 against their box or outline on a ${c.page} screen`);
+    if (c.ratio < 4.5) problems.push(`the subtitles would not read on a ${c.page} screen (${c.ratio}:1): .film/subtitles.json { "look": "bar" } boxes them`);
+  }
   return { lines, problems, worst, covered, offFrame, overSubs, bare, windowFrames };
 }
 
@@ -781,8 +1074,18 @@ async function checkCommand(film, o) {
   for (const c of filmClips(html).clips.filter((x) => x.kind === 'video' && /pip-/.test(x.cls))) {
     if (!pauseMap.has(c.file)) pauseMap.set(c.file, pausesOf(await levels(join(dir, c.file))));
   }
+  const styleFile = join(dir, '.film', 'subtitles.json');
+  const detailCache = new Map();
   const res = checkFilm(html, {
     dir,
+    style: existsSync(styleFile) ? JSON.parse(readFileSync(styleFile, 'utf8')) : undefined,
+    captionFor: (src) => { const f = src ? join(dir, decodeURI(src)) : null; return f && existsSync(f) ? readFileSync(f, 'utf8') : null; },
+    detailFor: (data) => {
+      const key = `${data.src}@${data.from}+${data.len}`;
+      const file = join(dir, data.src);
+      if (!detailCache.has(key)) detailCache.set(key, existsSync(file) ? readDetail(file, { w: data.size[0], h: data.size[1] }, data.from, data.len) : null);
+      return detailCache.get(key);
+    },
     pageData: (file) => {
       if (!cache.has(file)) {
         const p = join(dir, file);
@@ -797,27 +1100,92 @@ async function checkCommand(film, o) {
   for (const l of res.lines) console.log(l);
   if (o.video) {
     const { clips } = filmClips(html);
-    const changes = sceneTimes(o.video);
+    const scores = sceneScores(o.video);
     const speaker = clips.filter((c) => c.kind === 'video' && /pip-/.test(c.cls));
     for (const d of clips.filter((c) => c.kind === 'iframe' && c.say != null)) {
       const sp = speaker.find((c) => d.word >= c.in - 1e-6 && d.word <= (c.out ?? Infinity) + 1e-6);
       const said = sp ? sp.at + (d.word - sp.in) / sp.speed : NaN;
-      const near = changes.reduce((b, x) => (Math.abs(x - d.at) < Math.abs(b - d.at) ? x : b), Infinity);
-      const delta = near - said;
-      console.log(`${d.id} in ${basename(o.video)}: picture changes at ${near.toFixed(2)}, "${d.say}" said at ${said.toFixed(2)} (${delta >= 0 ? '+' : ''}${delta.toFixed(2)} s)`);
-      if (!(Math.abs(delta) <= 0.3)) res.problems.push(`${d.id}: in the render the picture changes ${delta.toFixed(2)} s from "${d.say}"`);
+      const hit = changeNear(scores, said);
+      const delta = hit.t - said;
+      console.log(`${d.id} in ${basename(o.video)}: ${hit.landed ? `picture changes at ${hit.t.toFixed(2)} (score ${hit.score}, usual ${hit.usual})` : `no change of picture within 0.3 s (largest ${hit.score})`}, "${d.say}" said at ${said.toFixed(2)}${hit.landed ? ` (${delta >= 0 ? '+' : ''}${delta.toFixed(2)} s)` : ''}`);
+      if (!hit.landed) res.problems.push(`${d.id}: in the render the picture does not change within 0.3 s of "${d.say}" (largest change ${hit.score}): look at the frames around ${said.toFixed(1)} s`);
     }
+    const starts = [...clips.filter((c) => c.kind === 'iframe').map((c) => c.at), 0];
+    for (const f of flashes(scores, starts)) console.log(`! ${basename(o.video)}: the picture changes and changes back ${f.secs.toFixed(2)} s apart at ${f.t.toFixed(2)} s: a flash, usually a page in the footage loading. Read the frames there; a "from" or "to" that skips it, or other footage`);
   }
   for (const p of res.problems) console.log(`✗ ${p}`);
   console.log(res.problems.length ? `${res.problems.length} problems` : '✓ window clear of every demo, on the frame and off the subtitles; demos on their words; cuts in pauses; subtitles from the .vtt');
+  if (!res.problems.length && !o.video) console.log('next: render with --subtitles, then run check --video <that mp4>: it finds each picture change and any flash in the render');
   process.exitCode = res.problems.length ? 1 : 0;
   return res;
 }
 
-/** Times where the rendered picture changes a lot from one frame to the next. */
-export function sceneTimes(video, threshold = 0.12) {
-  const r = spawnSync('ffmpeg', ['-hide_banner', '-nostdin', '-i', video, '-vf', `scale=270:-2,select='gt(scene,${threshold})',showinfo`, '-an', '-f', 'null', '-'], { encoding: 'utf8', maxBuffer: 1 << 28 });
-  return [...r.stderr.matchAll(/pts_time:([\d.]+)/g)].map((m) => +m[1]);
+/** ffmpeg's scene score of every frame of a render, at a small size: [{ t, s }]. */
+export function sceneScores(video) {
+  const r = spawnSync('ffmpeg', ['-hide_banner', '-nostdin', '-v', 'error', '-i', video, '-vf', "scale=270:-2,select='gte(scene,0)',metadata=print:file=-", '-an', '-f', 'null', '-'], { encoding: 'utf8', maxBuffer: 1 << 28 });
+  const out = [];
+  let t = null;
+  for (const line of `${r.stdout}\n${r.stderr}`.split('\n')) {
+    const a = /pts_time:([\d.]+)/.exec(line);
+    if (a) t = +a[1];
+    const b = /lavfi\.scene_score=([\d.]+)/.exec(line);
+    if (b && t != null) out.push({ t, s: +b[1] });
+  }
+  return out;
+}
+
+/**
+ * The biggest change of picture within 0.3 s of a time, and whether it stands out: a cut between two light pages scores
+ * low, so what counts is a change over 0.05 and three times the usual frame-to-frame change around it.
+ */
+export function changeNear(scores, t) {
+  const near = scores.filter((x) => Math.abs(x.t - t) <= 0.3);
+  const peak = near.reduce((b, x) => (x.s > b.s ? x : b), { t: NaN, s: 0 });
+  const around = scores.filter((x) => Math.abs(x.t - t) <= 1 && Math.abs(x.t - peak.t) > 0.15).map((x) => x.s).sort((a, b) => a - b);
+  const usual = around[Math.floor(around.length / 2)] ?? 0;
+  return { t: peak.t, score: Math.round(peak.s * 1000) / 1000, usual: Math.round(usual * 1000) / 1000, landed: peak.s >= 0.05 && peak.s >= 3 * usual };
+}
+
+/**
+ * Places where the render changes and changes back within a quarter second, away from where a shot starts: a page in the
+ * footage flashing blank. [{ t, secs }]
+ */
+export function flashes(scores, skip = []) {
+  const peaks = scores.filter((x) => x.s >= 0.04);
+  const out = [];
+  for (let i = 0; i < peaks.length; i++) {
+    for (let j = i + 1; j < peaks.length && peaks[j].t - peaks[i].t <= 0.25; j++) {
+      if (peaks[j].s < 0.1 || skip.some((t) => Math.abs(peaks[i].t - t) < 0.2)) continue;
+      out.push({ t: round3(peaks[i].t), secs: round3(peaks[j].t - peaks[i].t) });
+      i = j;
+      break;
+    }
+  }
+  return out;
+}
+
+/** Times, in a shot's seconds, where its camera moves a good deal from one place to another (the middle of each move). */
+export function cameraMoves(path, step = 6, min = 40) {
+  const speed = path.map((b, f) => {
+    if (f < step) return 0;
+    const a = path[f - step];
+    return Math.hypot(b[3] + b[5] / 2 - a[3] - a[5] / 2, b[4] + b[6] / 2 - a[4] - a[6] / 2) + Math.abs(b[5] - a[5]) / 2;
+  });
+  const out = [];
+  for (let f = 0; f < speed.length; f++) {
+    if (speed[f] < min) continue;
+    let top = f;
+    while (f < speed.length && speed[f] >= min) { if (speed[f] > speed[top]) top = f; f++; }
+    const t = round3((top - step / 2) / FPS);
+    if (!out.length || t - out.at(-1) > 1) out.push(t);
+  }
+  return out;
+}
+
+/** The stretches a demo shot holds one picture: from its start through each camera move to its end, [{ a, b }] in film seconds. */
+export function holdsOf(at, len, path) {
+  const marks = [at, ...cameraMoves(path).map((t) => round3(at + t)), round3(at + len)];
+  return marks.slice(1).map((b, i) => ({ a: marks[i], b }));
 }
 
 // ------------------------------------------------------------------ main

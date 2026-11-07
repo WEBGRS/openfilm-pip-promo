@@ -26,12 +26,15 @@ and it cannot hear where a pause starts. `skills/pip-promo/scripts/pip.mjs` does
 
 - **plan** reads `pip.json` (the recording, each demo with the phrase that brings it on, where its action is) and
   matches each phrase to the transcript's word times, places the window for each shot by trying every slot against
-  the camera path of that shot frame by frame, and writes film.html's tracks, a page per shot, the call to action and
-  the cover. Tracks it did not make are kept.
+  the camera path of that shot frame by frame and against the edge detail of the footage's own frames, and writes
+  film.html's tracks, a page per shot, the call to action and the cover. Tracks it did not make are kept. It says
+  what share of the footage's detail is under the window, where one picture holds for long while the speaker names
+  things, and a shot that opens on an empty screen.
 - **check** measures the film as it stands, after any edits in Studio: frames where the window covers the shown part,
-  leaves the frame, sits on the subtitles or floats over no demo; each shot against its word; speaker cuts in pauses;
-  subtitles drawn into a page. With `--video` it also finds the picture changes in a render and times them against
-  the words.
+  leaves the frame, sits on the subtitles or floats over no demo; the share of the footage's detail under the window,
+  and whether another place covers less; each shot against its word; held pictures; speaker cuts in pauses; subtitles
+  drawn into a page, and whether the subtitles' style (the project's, or a caption track's) reads on a white screen.
+  With `--video` it also finds the picture changes in a render and times them against the words.
 
 Where the action is comes from a take filmed with [web-demo](https://github.com/WEBGRS/openfilm-web-demo) or
 [app-demo](https://github.com/WEBGRS/openfilm-app-demo) (its clicks and marks), or from `focus` rects the agent writes
@@ -78,7 +81,7 @@ node --test test/*.test.mjs   # needs ffmpeg
 - 口癖和长停顿会剪掉，刀口只落在声音实测的停顿里；
 - 字幕由 Studio 从你的转写生成，封面用你说过的一句话。
 
-脚本 `pip.mjs` 做智能体做不到的两件事：`plan` 读 `pip.json`，把每个功能名对上转写里的词时间，逐帧试每个角落和这个镜头的推拉路径，挑出不挡重点的位置，写出 film.html 的轨道、每个镜头一页、行动号召页和封面页，别的轨道原样保留；`check` 量出当前片子（包括在 Studio 里改过之后）小窗挡住演示重点、出画、压字幕、底下没有演示的帧数，每个镜头离它的词差多少，剪点是否都在停顿里，页面里有没有画字幕；加 `--video` 还会在成片里找画面切换的时刻，对到词上。
+脚本 `pip.mjs` 做智能体做不到的两件事：`plan` 读 `pip.json`，把每个功能名对上转写里的词时间，逐帧试每个角落和这个镜头的推拉路径，并读素材画面的边缘细节，挑出遮得最少的位置，写出 film.html 的轨道、每个镜头一页、行动号召页和封面页，别的轨道原样保留；`check` 量出当前片子（包括在 Studio 里改过之后）小窗挡住演示重点、出画、压字幕、底下没有演示的帧数，窗口下面压住了素材多少细节、换个位置能不能更少，每个镜头离它的词差多少，一张画面撑太久没有，剪点是否都在停顿里，页面里有没有画字幕，字幕的样式在白底上看不看得清；加 `--video` 还会在成片里找画面切换的时刻，对到词上。
 
 演示的重点位置来自 web-demo 或 app-demo 录的素材（点击和标记），或者智能体看过画面后写的 `focus` 矩形。`cuts.mjs` 是 talking-head 的停顿测量，复制过来并导出了函数。只需要 Node 和 ffmpeg。
 

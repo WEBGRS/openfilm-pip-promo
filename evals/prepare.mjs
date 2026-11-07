@@ -1,4 +1,5 @@
-// Prepare one arm for measuring, in <run>/_m: delivered.mp4, c.mp4 (film as made, with subtitles), b.mp4 (same, talk hidden)
+// Prepare one arm for measuring, in <run>/_m: delivered.mp4, c.mp4 (film as made, with subtitles), b.mp4 (same, talk hidden),
+// n.mp4 (film as made, rendered without --subtitles: the difference from c.mp4 is the burned subtitles), times.json (render seconds)
 //   node prepare.mjs <run-dir> [delivered.mp4] [--c-is-delivered]
 import { copyFileSync, cpSync, existsSync, mkdirSync, readdirSync, readFileSync, rmSync, statSync, symlinkSync, writeFileSync } from 'node:fs';
 import { join, relative } from 'node:path';
@@ -26,6 +27,15 @@ const openfilm = (cwd, a) => {
   console.log(`openfilm ${a.join(' ')}: ${r.status}\n${(r.stdout + r.stderr).split('\n').slice(-5).join('\n')}`);
   return r.status;
 };
+// Render seconds of each film, kept in times.json
+const times = existsSync(join(m, 'times.json')) ? JSON.parse(readFileSync(join(m, 'times.json'), 'utf8')) : {};
+const timed = (name, cwd, a) => {
+  const t0 = Date.now();
+  const st = openfilm(cwd, a);
+  times[name] = Math.round((Date.now() - t0) / 1000);
+  writeFileSync(join(m, 'times.json'), JSON.stringify(times));
+  return st;
+};
 // The project: the work folder or a folder the agent opened inside it
 const films = all.filter((f) => /[\\/]film\.html$/.test(f)).sort((a, b) => statSync(b).mtimeMs - statSync(a).mtimeMs);
 if (!films.length) { console.log('no film.html: only delivered.mp4 is measured'); process.exit(0); }
@@ -33,7 +43,8 @@ const proj = films[0].replace(/[\\/]film\.html$/, '');
 console.log('project:', relative(work, proj) || '.');
 
 if (cIsDelivered) copyFileSync(join(m, 'delivered.mp4'), join(m, 'c.mp4'));
-else if (!existsSync(join(m, 'c.mp4'))) openfilm(proj, ['render', '--subtitles', '--out', join(m, 'c.mp4')]);
+else if (!existsSync(join(m, 'c.mp4'))) timed('c', proj, ['render', '--subtitles', '--out', join(m, 'c.mp4')]);
+if (!existsSync(join(m, 'n.mp4'))) timed('n', proj, ['render', '--out', join(m, 'n.mp4')]);
 
 // A copy of the project with the talk hidden in film.html and every page
 const hide = join(m, 'hide');
@@ -48,5 +59,5 @@ if (!existsSync(join(m, 'b.mp4'))) {
     if (/talk/.test(t)) { writeFileSync(f, t.includes('</head>') ? t.replace('</head>', `${rule}\n</head>`) : rule + t); n++; }
   }
   console.log(`talk hidden in ${n} html files`);
-  openfilm(hide, ['render', '--subtitles', '--out', join(m, 'b.mp4')]);
+  timed('b', hide, ['render', '--subtitles', '--out', join(m, 'b.mp4')]);
 }
