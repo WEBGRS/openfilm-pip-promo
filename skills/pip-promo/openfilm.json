@@ -20,17 +20,17 @@
     "es": "Promo de producto con quien habla en una ventana"
   },
   "summary": {
-    "en": "Your product's real screens fill the frame, each one as you name it, while you talk from a small window that steps out of the way.",
-    "zh-CN": "产品的真实画面占满屏幕，说到哪个功能就出现哪个；你在小窗里讲，小窗自己让开正在演示的地方。",
-    "ja": "製品の実際の画面が全面に映り、機能の名前を言った瞬間にその画面が出ます。あなたは小窓から話し、小窓は見せている部分をよけます。",
-    "ko": "제품의 실제 화면이 프레임을 채우고, 기능을 말하는 순간 그 화면이 나옵니다. 당신은 작은 창에서 말하고, 창은 보여 주는 부분을 피해 갑니다.",
-    "es": "Las pantallas reales de tu producto llenan el encuadre, cada una cuando la nombras, mientras hablas desde una ventana pequeña que se aparta de lo que se muestra."
+    "en": "Your product's real screens, each brought on at the words you tie it to, while you talk from a small window that steps out of the way.",
+    "zh-CN": "产品的真实画面按你说的话依次出现；你在小窗里讲，小窗自己让开正在演示的地方。",
+    "ja": "製品の実際の画面が、話す言葉に合わせて順に出ます。あなたは小窓から話し、小窓は見せている部分をよけます。",
+    "ko": "제품의 실제 화면이 말에 맞춰 차례로 나옵니다. 당신은 작은 창에서 말하고, 창은 보여 주는 부분을 피해 갑니다.",
+    "es": "Las pantallas reales de tu producto aparecen al ritmo de tus palabras, mientras hablas desde una ventana pequeña que se aparta de lo que se muestra."
   },
   "details": {
-    "en": "Best for: app and product promos, ads and lead-generation videos, vertical or 16:9, from your talking recording and screen recordings or screenshots.\nWhat it does: puts each demo on screen within a few frames of the words that name it, moves in gently on the part you talk about, keeps the window off it, off the busy parts of the picture (it reads the footage's frames), the subtitles and the feed's buttons, fills the frame with you for the opening line and the call to action, cuts ums and long pauses only in pauses, and makes a cover in your words.",
-    "zh-CN": "适合：App 和产品推广、广告、获客视频，竖屏或横屏；素材是你的口播录像，加上录屏或截图。\n它会：说到哪个功能，几帧之内就切到那段演示，镜头缓缓推近你正在讲的地方；小窗避开演示的重点、画面里内容密集的地方（会读素材的画面）、字幕和平台按钮；开头那句和结尾的行动号召由你占满全屏；口癖和长停顿只在停顿里剪；再用你说过的话做封面。",
-    "ja": "こんなときに：アプリや製品のプロモ、広告、集客動画（縦または横）。素材はあなたのトーク動画と、画面録画またはスクリーンショット。\nすること：機能の名前を言って数フレーム以内にそのデモを映し、話している部分へゆっくり寄ります。小窓はデモの要点、画面の細かい部分（素材のフレームを読みます）、字幕、プラットフォームのボタンをよけます。冒頭の一言と最後の呼びかけではあなたが全面に。つなぎ言葉と長い間は間の中だけで切り、あなたの言葉でサムネイルを作ります。",
-    "ko": "이럴 때: 앱과 제품 홍보, 광고, 고객 유치 영상(세로 또는 가로). 재료는 당신의 토크 영상과 화면 녹화 또는 스크린샷.\n하는 일: 기능을 말한 뒤 몇 프레임 안에 그 데모를 띄우고, 말하는 부분으로 천천히 다가갑니다. 작은 창은 데모의 핵심, 화면에서 내용이 빽빽한 곳(소재의 프레임을 읽습니다), 자막, 플랫폼 버튼을 피합니다. 첫 문장과 마지막 행동 유도에서는 당신이 화면을 가득 채웁니다. 군말과 긴 공백은 쉬는 지점에서만 자르고, 당신이 한 말로 표지를 만듭니다.",
-    "es": "Ideal para: promos de apps y productos, anuncios y vídeos de captación, en vertical o 16:9, a partir de tu grabación hablando y de grabaciones de pantalla o capturas.\nQué hace: pone cada demo en pantalla a pocos fotogramas de las palabras que la nombran, se acerca despacio a lo que explicas, aparta la ventana de eso, de las zonas con más detalle (lee los fotogramas de tu material), de los subtítulos y de los botones de la red social, te pone a pantalla completa en la frase de inicio y en la llamada a la acción, corta muletillas y pausas largas solo en las pausas y hace una portada con tus palabras."
+    "en": "Best for: app and product promos, ads and lead-generation videos, vertical or 16:9, from your talking recording and screen recordings or screenshots.\nWhat it does: brings each demo on at the words you tie it to, moves in gently on the part you talk about, keeps the window off it, off the busy parts of the picture (it reads the footage's frames), the subtitles and the feed's buttons, fills the frame with you for the opening line and the call to action, cuts ums and long pauses only in pauses, and makes a cover in your words. A wide recording in a vertical film comes out too small to read; it warns you when that happens.",
+    "zh-CN": "适合：App 和产品推广、广告、获客视频，竖屏或横屏；素材是你的口播录像，加上录屏或截图。\n它会：按你说的话切到对应的演示，镜头缓缓推近你正在讲的地方；小窗避开演示的重点、画面里内容密集的地方（会读素材的画面）、字幕和平台按钮；开头那句和结尾的行动号召由你占满全屏；口癖和长停顿只在停顿里剪；再用你说过的话做封面。横屏录屏放进竖屏片会小到看不清，这时它会提醒你。",
+    "ja": "こんなときに：アプリや製品のプロモ、広告、集客動画（縦または横）。素材はあなたのトーク動画と、画面録画またはスクリーンショット。\nすること：話す言葉に合わせてそのデモを映し、話している部分へゆっくり寄ります。小窓はデモの要点、画面の細かい部分（素材のフレームを読みます）、字幕、プラットフォームのボタンをよけます。冒頭の一言と最後の呼びかけではあなたが全面に。つなぎ言葉と長い間は間の中だけで切り、あなたの言葉でサムネイルを作ります。横長の録画を縦の動画に入れると小さくて読めなくなり、その場合は警告します。",
+    "ko": "이럴 때: 앱과 제품 홍보, 광고, 고객 유치 영상(세로 또는 가로). 재료는 당신의 토크 영상과 화면 녹화 또는 스크린샷.\n하는 일: 말에 맞춰 그 데모를 띄우고, 말하는 부분으로 천천히 다가갑니다. 작은 창은 데모의 핵심, 화면에서 내용이 빽빽한 곳(소재의 프레임을 읽습니다), 자막, 플랫폼 버튼을 피합니다. 첫 문장과 마지막 행동 유도에서는 당신이 화면을 가득 채웁니다. 군말과 긴 공백은 쉬는 지점에서만 자르고, 당신이 한 말로 표지를 만듭니다. 가로 녹화를 세로 영상에 넣으면 작아서 읽기 어려우며, 그럴 때는 경고합니다.",
+    "es": "Ideal para: promos de apps y productos, anuncios y vídeos de captación, en vertical o 16:9, a partir de tu grabación hablando y de grabaciones de pantalla o capturas.\nQué hace: pone cada demo en pantalla al ritmo de las palabras a las que la atas, se acerca despacio a lo que explicas, aparta la ventana de eso, de las zonas con más detalle (lee los fotogramas de tu material), de los subtítulos y de los botones de la red social, te pone a pantalla completa en la frase de inicio y en la llamada a la acción, corta muletillas y pausas largas solo en las pausas y hace una portada con tus palabras. Una grabación ancha en un vídeo vertical queda demasiado pequeña para leerse, y te avisa cuando pasa."
   }
 }

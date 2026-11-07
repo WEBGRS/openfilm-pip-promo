@@ -6,8 +6,8 @@ Each real request was given to an agent once with the skill and once without it,
 
 | request (word for word, below) | skill | with | without | seen |
 | --- | --- | --- | --- | --- |
-| 1: Chinese, a phone-page recording | 0.2.1, then 0.2.2 | Six shots, each on a named thing, the speaker's window clear of the page, Chinese labels, subtitles from his transcript. Picture changes on 5 of 6 named phrases, then on 3 of 6. | A split screen with the speaker on the top 60% and the phone page under him, no subtitles, no picture change on any named phrase. | The skill's films are closer to a promo. The count of named phrases moved from run to run more than any effect of the skill. |
-| 2: English, a website and an old Pi video | 0.2.0, then 0.2.2 | His words kept (97.5%), the window never over the product's text, subtitles that read. Picture changes on 1 of 5 named phrases, then on 4 of 5. | A designed ad: headline, the speaker in a small circle, large product cards, captions it drew. It kept 79% of his words. | The film made without the skill is the better design. The skill's website shots are too small to read. |
+| 1: Chinese, a phone-page recording | 0.2.1, then 0.2.2 | Six shots, each on a named thing, the speaker's window clear of the page, Chinese labels, subtitles from the transcript. Picture changes on 5 of 6 named phrases, then on 3 of 6. | A split screen with the speaker on the top 60% and the phone page under the speaker, no subtitles, no picture change on any named phrase. | The skill's films are closer to a promo. The count of named phrases moved from run to run more than any effect of the skill. |
+| 2: English, a website and an old Pi video | 0.2.0, then 0.2.2 | The speaker's words kept (97.5%), the window never over the product's text, subtitles that read. Picture changes on 1 of 5 named phrases, then on 4 of 5. | A designed ad: headline, the speaker in a small circle, large product cards, captions it drew. It kept 79% of the speaker's words. | The film made without the skill is the better design. The skill's website shots are too small to read. |
 
 ## Result
 
@@ -54,13 +54,13 @@ The project from `tools/make-sample.mjs` was not used: its presenter is drawn an
 | measure | with 0.2.1 | with 0.2.2 | without | earlier with 0.1.1 |
 | --- | --- | --- | --- | --- |
 | length | 29.2 s, one 0.36 s cut in a pause | 29.2 s, the same | 27.7 s, end trimmed | 29.2 s, the same cut |
-| his words kept in order, by letters | 100% | 100% | 98.4% | |
+| the speaker's words kept in order, by letters | 100% | 100% | 98.4% | |
 | named phrases with a picture change within 0.3 s (scene score over 0.12) | 5 of 6 | 3 of 6 | 0 of 6 | 3 of 6 |
 | the same by the local test | 6 of 6 | 4 of 6 | 0 of 6 | not measured |
-| shots tied to what he names | 6 | 6 | none | 4 |
+| shots tied to what the speaker names | 6 | 6 | none | 4 |
 | speaker | small window, 6.9% of the frame (width 0.27, set by the agent), 20.2 s | the same | top 60% of the frame for the whole film | small window, 10.5%, 19.4 s |
 | speaker full frame at start / end | 2.4 s / 6.6 s | 2.4 s / 6.6 s | 0 / 0 | 3.2 s / 6.6 s |
-| edge detail under the speaker's box: mean (90th percentile, maximum) | 0.0% (0.0, 0.3) | 0.0% (0.0, 0.0) | 43.4%, which is his own half of the frame | 11.9% |
+| edge detail under the speaker's box: mean (90th percentile, maximum) | 0.0% (0.0, 0.3) | 0.0% (0.0, 0.0) | 43.4%, which is the speaker's own half of the frame | 11.9% |
 | time the box sits over burned subtitles | 0 s | 0 s | 0 s | |
 | subtitles | burned from the `.vtt`, contrast 7.1 (lowest 6.4), found at 3 of 4 spoken lines | burned, 7.1 (lowest 6.3), 5 of 5 | none, and it said so | burned from the `.vtt` |
 | labels | Chinese | Chinese | Chinese | English |
@@ -69,7 +69,7 @@ The project from `tools/make-sample.mjs` was not used: its presenter is drawn an
 | cost, time | $0.29, 16.6 min | $0.38, 30.6 min | $0.27, 7.7 min | $0.22, 12.4 min |
 
 Seen, with 0.2.1:
-- Six shots of the phone recording, the window top-right and narrower than the default, which the agent chose after the plan said the page was dense. The speaker fills the frame for his first line and the closing one. Labels are Chinese, for a Chinese request.
+- Six shots of the phone recording, the window top-right and narrower than the default, which the agent chose after the plan said the page was dense. The speaker fills the frame for the first line and the closing one. Labels are Chinese, for a Chinese request.
 - The recording goes blank for about 0.1 s twice, at 12.6 s and 15.0 s of the film. It is a page loading in the recording, a white flicker over the product. The plan did not say so and `check --video` was never run, which the agent told the person. Both flashes are in the frames, and `check --video` of 0.2.2 lists both.
 - The subtitles sit in a grey box over the product's own text and cover some of it. They read.
 - A label overlaps a few lines of page text at 15.9 s.
@@ -79,7 +79,7 @@ Seen, with 0.2.2:
 - No flash was left in the render by the check's count. The window is over blank margin, 0.0% of the detail.
 
 Seen, without:
-- A split screen: James on top, the phone recording over his chest and the lower half. The page changes by scrolling, not on his words, and one page is held for 16.6 s.
+- A split screen: James on top, the phone recording over the chest and the lower half. The page changes by scrolling, not on the words, and one page is held for 16.6 s.
 - Chinese headline and closing line, which suit the audience. No subtitles, and it said so. It ran `look --full` and found nothing.
 
 ## Request 2
@@ -91,7 +91,7 @@ Here's footage for a promo of the Kiwix Hotspot (it used to be called Pi Box). I
 | measure | with 0.2.0 | with 0.2.2 | without | earlier with 0.1.1 / 0.1.2 |
 | --- | --- | --- | --- | --- |
 | length | 30.5 s, no cuts | 30.5 s, no cuts | 26.5 s, the talk trimmed | 30.5 s, no cuts |
-| his words kept in order, by letters | 97.5% | 97.5% | 79.1% | 97.5% |
+| the speaker's words kept in order, by letters | 97.5% | 97.5% | 79.1% | 97.5% |
 | named phrases with a picture change within 0.3 s (scene score over 0.12) | 1 of 5 | 4 of 5 | 0 of 5 | 3 of 5 (0.1.1), 4 of 5 (0.1.2) |
 | the same by the local test | 1 of 5 | 4 of 5 | 1 of 5 | not measured |
 | product shots | 7 | 5 | about 7 screens | |
@@ -114,8 +114,8 @@ Seen, with 0.2.2:
 - The cover line was changed to "A Raspberry Pi with content on it"; the agent said the default first line, "Hello, I'm Guillaume", sells nothing. The last 6 s are only the speaker.
 
 Seen, without:
-- The strongest opening of the arms: a headline, "No internet? Take Wikipedia anyway", with a "formerly Pi Box" tag while he says the old name. Product screens are large and readable, in cards with the speaker in a small circle.
-- It cut his talk to 23 s and kept 79% of his words. It changed "Kalyte" to "KA Lite" in the captions by guess. It burned in a corrected caption file, `captions.vtt`, with word highlight. The mix is about -11 LUFS and it said so.
+- The strongest opening of the arms: a headline, "No internet? Take Wikipedia anyway", with a "formerly Pi Box" tag while the old name is said. Product screens are large and readable, in cards with the speaker in a small circle.
+- It cut the talk to 23 s and kept 79% of the speaker's words. It changed "Kalyte" to "KA Lite" in the captions by guess. It burned in a corrected caption file, `captions.vtt`, with word highlight. The mix is about -11 LUFS and it said so.
 
 ## Measures
 

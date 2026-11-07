@@ -1,23 +1,24 @@
 # pip-promo
 
-An [OpenFilm](https://github.com/openfilm/openfilm) skill for the promo format that works for apps and products right
-now: the product's own screens fill the frame, and the person selling it talks from a small window. Not a person
-holding up a phone, not a slideshow of screenshots: each screen comes on as the speaker names it, and the window
+An [OpenFilm](https://github.com/openfilm/openfilm) skill for one promo format: the product's own screens fill the frame, and the person selling it talks from a small window. Not a person
+holding up a phone, not a slideshow of screenshots: each screen is tied to the words that name it, and the window
 moves out of the way of whatever is being shown.
 
 | | | |
 | --- | --- | --- |
-| <img src="skills/pip-promo/cover.jpg" width="200" alt=""> | [Product promo, speaker in a window](skills/pip-promo) | Your product's real screens fill the frame, each one as you name it, while you talk from a small window that steps out of the way. |
+| <img src="skills/pip-promo/cover.jpg" width="200" alt=""> | [Product promo, speaker in a window](skills/pip-promo) | Your product's real screens, each brought on at the words you tie it to, while you talk from a small window that steps out of the way. |
 
 You give it a recording of yourself talking about the product and screen recordings or screenshots of it (a phone app
 or a desktop one). It makes a vertical film (or 16:9, square, 4:5) where:
 
 - you fill the frame for the opening line and for the call to action, with your logo and one line over it;
-- in between, each demo shot comes on 0.1 s before the words that name it and stays until the next one is named,
+- in between, each demo shot is set to come on 0.1 s before the words it is tied to and stays until the next one is named,
   moving in slowly on the part you are talking about;
-- your window sits in a corner chosen per shot so it never covers that part, the subtitles or the feed's own buttons;
+- your window sits in a corner chosen per shot to stay off that part, the subtitles and the feed's own buttons;
 - ums and long pauses are cut, only inside pauses measured in the sound;
 - subtitles come from your transcript through Studio, and a cover is made from a line you said.
+
+A wide recording in a vertical film comes out too small to read. `plan` warns when that happens.
 
 ## Why a script
 
