@@ -21,8 +21,7 @@ stops the scroll, and the call to action.
   only where a shot changes.
 - **Their words in their order.** Ums and long pauses go, each cut in a pause measured in the sound; anything else only
   when they ask. Report every cut over two seconds with its words.
-- **Subtitles from the transcript**, never drawn in a page: the `.vtt` beside the recording is what Studio turns into
-  subtitles. A shot's label names a feature in a few words, never the speaker's sentence.
+- **Subtitles from the transcript**, never drawn in a page: the `.vtt` beside the recording is their source. A shot's label names a feature in a few words, never the speaker's sentence.
 - **A cover** in a line they said, readable at feed size.
 
 ## What you have
@@ -62,7 +61,7 @@ a phrase never said. Fix them and plan again.
 the window covers the shown part, leaves the frame, sits on the subtitles or floats over nothing; each shot against
 its word; cuts in pauses; subtitles from the `.vtt`. `--video <render>` also times the picture changes. It must end
 with ✓. Then `npx openfilm look` and read the sheet: the plan only keeps the window off what `focus` says. Render with
-`--subtitles`: a plain render has none. With no subtitle style they are boxed ("bar"). `npx openfilm look pip/cover.html 0` is the cover.
+`--subtitles`: a plain render shows only a caption track. With no subtitle style they are boxed ("bar"). `npx openfilm look pip/cover.html 0` is the cover.
 
 ## With the person
 

@@ -584,7 +584,10 @@ export function mergeFilm(old, { sections, style, viewport }) {
 ${viewport}`);
   html = /<style data-pip>[\s\S]*?<\/style>/.test(html) ? html.replace(/<style data-pip>[\s\S]*?<\/style>/, style) : html.replace('</head>', `${style}\n</head>`);
   const theirs = [...html.matchAll(/<section(?![^>]*data-pip)[^>]*>[\s\S]*?<\/section>/g)].map((x) => x[0]);
-  const body = [...sections.slice(0, -1), ...theirs, sections.at(-1)];
+  // Caption tracks stay on top
+  const captions = theirs.filter((s) => /<track\b/.test(s));
+  const others = theirs.filter((s) => !/<track\b/.test(s));
+  const body = [...captions, ...sections.slice(0, -1), ...others, sections.at(-1)];
   return html.replace(/<body>[\s\S]*<\/body>/, `<body>\n${body.join('\n')}\n</body>`);
 }
 
@@ -762,7 +765,11 @@ export function checkFilm(html, { dir, pageData, pausesFor, wordsFor }) {
     const ws = text.split(/\s+/).map(norm).filter(Boolean);
     for (let i = 0; i + 4 <= ws.length; i++) if (runs.has(ws.slice(i, i + 4).join(' '))) { problems.push(`${c.file} draws the speaker's words "${ws.slice(i, i + 4).join(' ')}": subtitles come from the .vtt`); break; }
   }
-  if (/<track\b/.test(html)) problems.push('film.html has a <track>: subtitles come from the .vtt beside the recording');
+  // Caption tracks are allowed; their cues are not measured
+  const tags = html.match(/<track\b[^>]*>/g) ?? [];
+  const captionTags = tags.filter((t) => !/\skind=/.test(t) || /\skind=["']?(captions|subtitles)\b/.test(t));
+  if (captionTags.length) lines.push(`${captionTags.length} caption track(s): the window is checked against the default subtitle band, not their cues`);
+  if (captionTags.length < tags.length) problems.push('film.html has a <track> that is not a caption track');
   return { lines, problems, worst, covered, offFrame, overSubs, bare, windowFrames };
 }
 

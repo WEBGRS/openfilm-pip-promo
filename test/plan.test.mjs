@@ -147,6 +147,18 @@ test('checkFilm passes the planned film', () => {
   assert.ok(r.worst <= 0.3);
 });
 
+test('checkFilm takes a caption track, and refuses any other <track>', () => {
+  const add = (tag) => filmOf(plan).replace('</section>', `</section>\n<section>${tag}</section>`);
+  const noVtt = (r) => r.problems.filter((x) => !/no \.vtt/.test(x));
+  let r = P.checkFilm(add('<track kind="captions" src="captions/talk.vtt">'), deps());
+  assert.deepEqual(noVtt(r), []);
+  assert.ok(r.lines.some((x) => /1 caption track/.test(x)));
+  r = P.checkFilm(add('<track src="captions/talk.vtt">'), deps());
+  assert.deepEqual(noVtt(r), []);
+  r = P.checkFilm(add('<track kind="chapters" src="c.vtt">'), deps());
+  assert.ok(r.problems.some((x) => /not a caption track/.test(x)));
+});
+
 test('checkFilm catches a window moved over the shown part', () => {
   const s = plan.shots[0];
   const p0 = s.path[0];
@@ -170,6 +182,14 @@ test('checkFilm catches a cut outside a pause', () => {
   const html = filmOf(plan).replace(/#t=([\d.]+),([\d.]+)" at="0"/, (m, a) => `#t=${a},2.2" at="0"`);
   const r = P.checkFilm(html, deps());
   assert.ok(r.problems.some((x) => /not in a pause/.test(x)), r.problems.join('\n'));
+});
+
+test('mergeFilm keeps a caption track above the pip tracks', () => {
+  const parts = P.filmHtml(plan, { speaker: 'assets/talk.mp4', face: '50% 30%', shotFiles: plan.shots.map((s) => `pip/demo-${s.n}.html`), musicVolume: 0.1 });
+  const track = '<section>\n  <track kind="captions" src="captions/talk.vtt">\n</section>';
+  const merged = P.mergeFilm(P.mergeFilm(null, parts).replace('</section>', `</section>\n${track}`), parts);
+  assert.ok(merged.indexOf('<track') < merged.indexOf('<section data-pip'));
+  assert.equal((merged.match(/<track\b/g) ?? []).length, 1);
 });
 
 test('mergeFilm keeps the person\'s own tracks', () => {

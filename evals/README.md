@@ -6,7 +6,7 @@ Two real requests, each run once with the skill and once without, in an isolated
 
 - Skill versions: 0.1.1, and 0.1.2 for the re-run.
 - Agent: Claude Code 2.1.310, headless. Model `claude-sonnet-5-5`, as reported by each run's init event.
-- OpenFilm 0.2.7. Windows 11. 2026-11-06.
+- OpenFilm 0.2.7 installed. Windows 11. 2026-11-06. The agent's OpenFilm instructions say `npx -y openfilm@latest`, which was 0.3.0 once it came out that day. Without the skill on request 1, the agent ran `look` and `render` through it. On request 2, both arms read the 0.3.0 manual through it. The other runs used 0.2.7.
 - Transcripts were supplied beside each recording, the same for both arms: faster-whisper large-v3 word times, uncorrected except for joining "Wi -Fi". No transcription service was used.
 - Films were read from contact sheets and frames, with `npx openfilm look` and ffmpeg. They were not played in Studio.
 
@@ -105,3 +105,10 @@ The same scripts ran on each arm's finished film, independent of what made it:
 The difference between the two renders is the speaker, so its box is measured from pixels. Edge pixels are Canny edges of the picture with the speaker hidden.
 
 The picture-change count uses ffmpeg's scene score at 0.12, the same threshold as `pip.mjs check --video`. It misses cuts between similar pages and also counts changes inside the footage, so 3 of 6 and 4 of 5 understate the with arm. Times include rendering on a machine busy with other trials. The numbers above are as measured, without corrections. Each request ran once per version.
+
+## On OpenFilm 0.3.0
+
+After the trials, a copy of a finished trial project was run on the released OpenFilm 0.3.0 (Windows 11, 2026-11-06), without an agent and not in Studio.
+
+- `look` passed. A 4 s `render` and `render --subtitles` both came out, and the second showed the project's boxed subtitles.
+- A caption track written into the film was drawn by a plain render. `check` now accepts one and does not measure where its cues sit. A rebuild keeps the track above the pip tracks.
