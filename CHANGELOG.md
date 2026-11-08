@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.2.3
+
+- Evals: the owner watched and listened to both arms.
+
 ## 0.2.2
 
 - `plan` reads the footage a second time at 10 frames a second and says where it goes blank (a page loading), with the

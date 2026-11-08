@@ -27,7 +27,7 @@ What the 0.2.x changes did, against 0.1.1 and 0.1.2 on the same requests (those 
 - OpenFilm 0.3.0, one exact copy shared by every arm. Windows 11, 2026-11-06 and 07.
 - Skill versions: 0.2.0 for the first run of request 2, 0.2.1 for the first run of request 1, 0.2.2 for the re-runs of both. The harness copies the skill folder when an arm starts, and each copy was compared by checksum with the files in the repository then. Only 0.2.2 is committed; what 0.2.0 and 0.2.1 lacked is in [CHANGELOG.md](../CHANGELOG.md).
 - Transcripts were supplied beside each recording, the same for both arms: faster-whisper large-v3 word times, uncorrected except for joining "Wi -Fi". No transcription service was used.
-- Films were read from contact sheets and frames made with `npx openfilm look` and ffmpeg. They were not played in Studio or on a phone.
+- Films were read from contact sheets and frames made with `npx openfilm look` and ffmpeg. The owner watched and listened to the films of both arms and accepted the skill (2026-11-08). They were not played on a phone.
 - The requests were written before the first run and not changed. Each ran once per arm, plus one more `with` run per request after the fixes. Every run is in the tables.
 - Costs are from each run's result event. Times are wall clock on a machine shared with other trials, so they say little about the skill.
 
